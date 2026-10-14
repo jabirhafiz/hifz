@@ -1,12 +1,10 @@
-﻿<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-</head><body>
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Illuminated Hearts â€” Hifz Academy</title>
+<title>Illuminated Hearts — Hifz Academy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -381,7 +379,6 @@
     body{background:#fff;}
   }
 </style>
-
 </head>
 <body>
 <div id="app">
@@ -459,14 +456,14 @@ function todayStr(){
 function currentMonthStr(){ return todayStr().slice(0,7); }
 function currentYearStr(){ return todayStr().slice(0,4); }
 function fmtDateDisplay(iso){
-  if(!iso) return 'â€”';
+  if(!iso) return '—';
   const parts = iso.split('-');
   if(parts.length!==3) return iso;
   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return Number(parts[2])+' '+months[Number(parts[1])-1]+' '+parts[0];
 }
 function fmtMonthDisplay(ym){
-  if(!ym) return 'â€”';
+  if(!ym) return '—';
   const parts = ym.split('-');
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
   return months[Number(parts[1])-1]+' '+parts[0];
@@ -502,7 +499,7 @@ function currentProgress(studentId){
 }
 function hifzCurrentDisplay(studentId){
   const s = byId(APP.students, studentId);
-  if(!s) return { whole:'â€”', pages:0 };
+  if(!s) return { whole:'—', pages:0 };
   if(s.currentJuzWhole!==undefined && s.currentJuzWhole!==null && s.currentJuzWhole!==''){
     if(s.studyType!=='Doura'){
       // always derived from the latest valid New Learn sessions (never from a stale stored value / the starting page)
@@ -515,7 +512,7 @@ function hifzCurrentDisplay(studentId){
     return { whole:s.currentJuzWhole, pages:Number(s.currentJuzPages)||0 };
   }
   const legacy = currentProgress(studentId);
-  return { whole: legacy.juz || s.currentJuz || 'â€”', pages:0 };
+  return { whole: legacy.juz || s.currentJuz || '—', pages:0 };
 }
 // "pages" in storage = pages COMPLETED in the current Juz (0-20). The page shown to the user is the page being worked on (1-20).
 function curPage(pages){ pages = Number(pages)||0; return pages>=PAGES_PER_JUZ ? PAGES_PER_JUZ : pages+1; }
@@ -705,13 +702,12 @@ const SUPABASE_URL = 'https://tmegfwtyninsjnfmugza.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Tbh9s5K7T4IR0ncPlm0KCg_rmccReAU';
 
 function makeSupabaseDb(sbClient){
-  /* Maps Firestore-style API -> Supabase REST + Realtime */
   const pollingIntervals = {};
-  const POLL_MS = 3000; // poll every 3 s for real-time feel
+  const POLL_MS = 3000;
 
   function col(tableName){
-    const docListeners = {}; // docId -> [fn]
-    const colListeners = []; // [fn]
+    const docListeners = {};
+    const colListeners = [];
 
     async function fetchAll(){
       const { data, error } = await sbClient.from(tableName).select('*');
@@ -941,7 +937,7 @@ async function attemptLogin(){
     APP.loginError='Too many attempts. Please wait '+Math.ceil((LOGIN_LOCK.until-Date.now())/1000)+'s and try again.'; render(); return;
   }
   const admin = APP.adminSettings;
-  if(!admin){ APP.loginError='Still loading â€” please try again in a moment.'; render(); return; }
+  if(!admin){ APP.loginError='Still loading — please try again in a moment.'; render(); return; }
   APP.loginBusy = true;
   try{
     let auth = null, disabled = false;
@@ -950,7 +946,7 @@ async function attemptLogin(){
       let ok = false;
       if(admin.hash){ ok = await verifyPassword(p, admin); }
       else if(admin.password && admin.password===p){
-        ok = true; // legacy plaintext record â†’ upgrade to a salted hash right now
+        ok = true; // legacy plaintext record → upgrade to a salted hash right now
         const h = await hashPassword(p);
         const upgraded = { username:admin.username, hash:h.hash, salt:h.salt, iter:h.iter, isDefault:(p==='admin123'), updatedAt:Date.now() };
         APP.adminSettings = upgraded;
@@ -1200,13 +1196,13 @@ async function completeJuzIfReady(studentId){
     if(juz < MAX_JUZ){
       const upd = {}; upd[k.w] = juz+1; upd[k.p] = 0;
       await updateStudent(studentId, Object.assign(upd, stamp));
-      toast('Juz '+juz+' completed â€” now Juz '+(juz+1)+', Page 1');
+      toast('Juz '+juz+' completed — now Juz '+(juz+1)+', Page 1');
     } else if(isDoura){
       await updateStudent(studentId, Object.assign({ douraJuzWhole:1, douraJuzPages:0, completedDouras:completedDouras+1 }, stamp));
-      toast('Doura '+(completedDouras+1)+' completed â€” starting next Doura from Juz 1');
+      toast('Doura '+(completedDouras+1)+' completed — starting next Doura from Juz 1');
     } else {
       await updateStudent(studentId, Object.assign({ hifzCompleted:true, hifzCompletedAt:Date.now() }, stamp));
-      toast('Juz 30 completed â€” Hifz complete');
+      toast('Juz 30 completed — Hifz complete');
     }
     return true;
   } finally { delete JUZ_LOCKS[lockKey]; }
@@ -1258,7 +1254,7 @@ function computeHifzProgress(base, sessions){
       if(n>0 && ahead>1) flags.push('Juz '+J+' was entered on '+x.date+' without a session for the Juz before it.');
       W = J; P = 0;
     }
-    if(n>0 && f > P+1) flags.push('Pages '+(P+1)+'â€“'+(f-1)+' of Juz '+W+' have no New Learn session (session on '+x.date+').');
+    if(n>0 && f > P+1) flags.push('Pages '+(P+1)+'–'+(f-1)+' of Juz '+W+' have no New Learn session (session on '+x.date+').');
     n++;
     P = t;
     if(P >= PAGES_PER_JUZ && x.result==='Clear'){ completed.push(W); W = nextJuzNo(W); P = 0; }
@@ -1294,7 +1290,7 @@ async function recomputeHifzProgress(studentId, ov){
   if(r.w!==curW || r.p!==curP || s.hifzCompleted){
     const upd = { currentJuzWhole:r.w, currentJuzPages:r.p, hifzCompleted:false };
     await updateStudent(studentId, upd);
-    if(r.w!==curW && r.p===0) toast('Juz '+curW+' completed â€” now Juz '+r.w);
+    if(r.w!==curW && r.p===0) toast('Juz '+curW+' completed — now Juz '+r.w);
   }
   // conflicts / skipped pages are flagged for review, never guessed
   const note = r.flags.length ? r.flags[0] : '';
@@ -1418,7 +1414,7 @@ async function saveCompetitionMarksAndResults(compId, marks){
     if(stars){
       await dbc('achievements').doc(starId).set({
         studentId: r.studentId, date: comp.date, stars: stars,
-        reason: comp.type+' Competition â€” '+(r.rank===1?'1st Place':r.rank===2?'2nd Place':'3rd Place'),
+        reason: comp.type+' Competition — '+(r.rank===1?'1st Place':r.rank===2?'2nd Place':'3rd Place'),
         competitionId: compId, updatedAt: Date.now()
       });
     } else {
@@ -1505,12 +1501,12 @@ function render(){
 
 function renderLoginScreen(){
   if(APP.pendingAuth){
-    return '<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;"><div class="subtle">Loadingâ€¦</div></div>';
+    return '<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;"><div class="subtle">Loading…</div></div>';
   }
   const demoStudents = APP.students.filter(function(s){ return s.loginUsername && s.isDemo; }).slice(0,2);
   const quickButtons = demoStudents.map(function(s){
       const firstName = (s.name||'').split(' ')[0];
-      return '<button class="btn small outline" onclick="quickLogin(\'student\',\''+esc(s.loginUsername)+'\')">ðŸ‘¤ '+esc(firstName)+'</button>';
+      return '<button class="btn small outline" onclick="quickLogin(\'student\',\''+esc(s.loginUsername)+'\')">👤 '+esc(firstName)+'</button>';
     }).join('');
   return ''+
   '<div class="login-wrap">'+
@@ -1519,7 +1515,7 @@ function renderLoginScreen(){
     '<div style="margin-bottom:26px;color:var(--ink-soft);font-size:14px;font-weight:500;">Hifz Academy Portal Login</div>'+
     '<div class="card" style="width:100%;max-width:360px;">'+
       '<div class="field"><label>Username</label><input id="login-user" type="text" autocomplete="username" placeholder="e.g. admin or abdullah"></div>'+
-      '<div class="field"><label>Password</label><input id="login-pass" type="password" autocomplete="current-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" onkeydown="if(event.key===\'Enter\') attemptLogin();"></div>'+
+      '<div class="field"><label>Password</label><input id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key===\'Enter\') attemptLogin();"></div>'+
       (APP.loginError? '<div class="banner error">'+esc(APP.loginError)+'</div>' : '')+
       '<button class="btn block" onclick="attemptLogin()">Sign In</button>'+
       (quickButtons ? '<div class="divider"></div>'+
@@ -1529,7 +1525,7 @@ function renderLoginScreen(){
   '</div>';
 }
 function quickLogin(kind, username){
-  // Convenience only: fills in the username. A password is always required â€” there is no sign-in bypass.
+  // Convenience only: fills in the username. A password is always required — there is no sign-in bypass.
   const uEl = document.getElementById('login-user'), pEl = document.getElementById('login-pass');
   if(uEl){ uEl.value = kind==='admin' ? ((APP.adminSettings&&APP.adminSettings.username)||'admin') : (username||''); }
   if(pEl){ pEl.value=''; pEl.focus(); }
@@ -1546,7 +1542,7 @@ function renderHeader(){
   let subtitle = isTch ? ('Teacher: '+esc(APP.auth.name||APP.auth.username)) : 'Admin / Teacher Portal';
   if(isParent){
     const s = byId(APP.students, APP.auth.studentId);
-    subtitle = 'Student: '+(s ? esc(s.name) : 'â€”');
+    subtitle = 'Student: '+(s ? esc(s.name) : '—');
   }
   const pendingCount = isParent ? 0 : VR().filter(function(r){ return r.status==='pending'; }).length;
   const bellBtn = (isParent || !can('requests')) ? '' :
@@ -1691,12 +1687,12 @@ function renderStudentsView(){
       const inactive = s.active===false;
       const isDoura = s.studyType==='Doura';
       const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
-      const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' Â· '+esc(juzLabel(prog))) : esc(juzLabel(prog));
+      const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' · '+esc(juzLabel(prog))) : esc(juzLabel(prog));
       return '<div class="row-card" onclick="openStudentProfile(\''+s.id+'\')">'+
         '<div class="avatar">'+esc(initials(s.name))+'</div>'+
         '<div class="row-main">'+
           '<div class="row-title">'+esc(s.name)+(inactive?' <span class="badge inactive">Inactive</span>':'')+'</div>'+
-          '<div class="row-sub">'+esc(s.batch||'â€”')+' Â· '+progLabel+'</div>'+
+          '<div class="row-sub">'+esc(s.batch||'—')+' · '+progLabel+'</div>'+
         '</div>'+
         '<div class="row-end">'+
           '<div class="badge stars">'+iconSvg('star')+' '+stats.starsRemaining+'</div><br/>'+
@@ -1747,7 +1743,7 @@ function renderTodayView(){
       '<div class="avatar">'+esc(initials(s.name))+'</div>'+
       '<div class="row-main">'+
         '<div class="row-title">'+esc(s.name)+'</div>'+
-        '<div class="row-sub">'+esc(s.batch||'â€”')+(done? ' Â· '+esc(normStatus(rec.status))+' Â· '+esc(rec.performance)+'/10' : '')+'</div>'+
+        '<div class="row-sub">'+esc(s.batch||'—')+(done? ' · '+esc(normStatus(rec.status))+' · '+esc(rec.performance)+'/10' : '')+'</div>'+
       '</div>'+
       '<div class="row-end">'+
         (done? statusBadge(rec.status) : '<span class="badge pending">Pending</span>')+
@@ -1797,8 +1793,8 @@ function openEntriesManager(date, studentId){
       return '<div class="card" style="margin-bottom:8px;padding:12px;">'+
         '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'+
           '<div style="min-width:0;"><div class="row-title">'+esc(st?st.name:'Unknown student')+'</div>'+
-          '<div class="row-sub">'+(kind==='achievements'?'Star':'Tally')+' Â· '+fmtDateDisplay(e.date)+'</div></div>'+
-          '<span class="badge '+(kind==='achievements'?'stars':'tallies')+'">'+(kind==='achievements'?'+'+qty+' â˜…':'+'+qty)+'</span>'+
+          '<div class="row-sub">'+(kind==='achievements'?'Star':'Tally')+' · '+fmtDateDisplay(e.date)+'</div></div>'+
+          '<span class="badge '+(kind==='achievements'?'stars':'tallies')+'">'+(kind==='achievements'?'+'+qty+' ★':'+'+qty)+'</span>'+
         '</div>'+
         (e.reason?'<div class="subtle" style="margin-top:6px;">'+esc(e.reason)+'</div>':'')+
         '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">'+
@@ -1893,7 +1889,7 @@ function renderCalendarReport(){
       '<div class="avatar">'+esc(initials(s.name))+'</div>'+
       '<div class="row-main">'+
         '<div class="row-title">'+esc(s.name)+'</div>'+
-        '<div class="row-sub">'+ (rec? esc(normStatus(rec.status))+' Â· '+esc(rec.performance)+'/10 Â· '+sessCount+' session'+(sessCount===1?'':'s') : 'No record') +'</div>'+
+        '<div class="row-sub">'+ (rec? esc(normStatus(rec.status))+' · '+esc(rec.performance)+'/10 · '+sessCount+' session'+(sessCount===1?'':'s') : 'No record') +'</div>'+
       '</div>'+
       '<div class="row-end">'+ (tal>0? '<span class="badge tallies">'+tal+' tallies</span>' : '') +'</div>'+
     '</div>';
@@ -1919,8 +1915,8 @@ function openDayReportModal(studentId, date){
   const sessionsHtml = sess.length ? sess.map(function(se){
     return '<div class="session-item">'+
       '<div class="n">'+se.sessionNo+'</div>'+
-      '<div class="info"><div class="t">'+esc(sessionTypeLabel(se.type))+' Â· Juz '+esc(se.juz||'â€”')+'</div>'+
-      '<div class="d">Pg '+esc(se.fromPage)+'â€“'+esc(se.toPage)+' Â· '+esc(se.mistakes||0)+' mistakes Â· '+esc(se.result)+'</div></div>'+
+      '<div class="info"><div class="t">'+esc(sessionTypeLabel(se.type))+' · Juz '+esc(se.juz||'—')+'</div>'+
+      '<div class="d">Pg '+esc(se.fromPage)+'–'+esc(se.toPage)+' · '+esc(se.mistakes||0)+' mistakes · '+esc(se.result)+'</div></div>'+
     '</div>';
   }).join('') : '<div class="subtle" style="margin-bottom:10px;">No sessions recorded.</div>';
 
@@ -1929,18 +1925,18 @@ function openDayReportModal(studentId, date){
   }).join('')+'</div>' : '<div class="subtle">No tallies this day.</div>';
 
   const achHtml = ach.length ? '<div class="list">'+ach.map(function(a){
-    return '<div class="kv"><span class="k">'+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+' â˜…</span></div>';
+    return '<div class="kv"><span class="k">'+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+' ★</span></div>';
   }).join('')+'</div>' : '<div class="subtle">No achievements this day.</div>';
 
   openModal(
     '<div class="modal-head">'+
-      '<div class="modal-title">'+esc(s.name)+'<span class="sub">'+fmtDateDisplay(date)+' Â· '+esc(s.batch||'â€”')+'</span></div>'+
+      '<div class="modal-title">'+esc(s.name)+'<span class="sub">'+fmtDateDisplay(date)+' · '+esc(s.batch||'—')+'</span></div>'+
       '<button class="modal-close" onclick="requestCloseModal()">'+iconSvg('close')+'</button>'+
     '</div>'+
     (rec? (
       '<div class="kv"><span class="k">Status</span><span class="v">'+esc(normStatus(rec.status))+'</span></div>'+
       '<div class="kv"><span class="k">Performance Score</span><span class="v">'+esc(rec.performance)+'/10</span></div>'+
-      '<div class="kv"><span class="k">Remarks</span><span class="v" style="font-weight:500;text-align:right;max-width:60%;">'+(rec.remarks? esc(rec.remarks) : 'â€”')+'</span></div>'
+      '<div class="kv"><span class="k">Remarks</span><span class="v" style="font-weight:500;text-align:right;max-width:60%;">'+(rec.remarks? esc(rec.remarks) : '—')+'</span></div>'
     ) : '<div class="banner">No daily record was entered for this student on this date.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recitation Sessions</div>'+
@@ -1974,7 +1970,7 @@ function renderStudentReport(){
   '<div class="field" style="margin-bottom:10px;">'+
     '<label>Student</label>'+
     '<select onchange="APP.reportStudentId=this.value;render();">'+
-      students.map(function(st){ return '<option value="'+st.id+'" '+(APP.reportStudentId===st.id?'selected':'')+'>'+esc(st.name)+' ('+esc(st.batch||'â€”')+')</option>'; }).join('')+
+      students.map(function(st){ return '<option value="'+st.id+'" '+(APP.reportStudentId===st.id?'selected':'')+'>'+esc(st.name)+' ('+esc(st.batch||'—')+')</option>'; }).join('')+
     '</select>'+
   '</div>'+
   '<div class="seg" style="margin-bottom:14px;">'+
@@ -1995,7 +1991,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho){
   return ''+
   '<div class="card" style="margin-bottom:14px;">'+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">'+
-      (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'â€”')+' Â· '+esc(periodLabel)+'</div></div>')+
+      (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'—')+' · '+esc(periodLabel)+'</div></div>')+
     '</div>'+
     '<div class="stat-mini-grid" style="margin-bottom:8px;">'+
       '<div class="stat-mini"><div class="n">'+stats.newLearnPages+'</div><div class="l">New Learn Pages</div></div>'+
@@ -2019,8 +2015,8 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho){
     (periodFilterFn? (
       '<div class="divider"></div><div class="section-title small" style="margin-bottom:8px;">Competitions</div>'+
       (comps.length? comps.map(function(h){
-        const rankLabel = h.result? (h.result.rank===1?'ðŸ¥‡ 1st':h.result.rank===2?'ðŸ¥ˆ 2nd':h.result.rank===3?'ðŸ¥‰ 3rd':h.result.rank+'th') : 'â€”';
-        return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' â€” '+esc(h.competition.type)+'</span><span class="v">'+rankLabel+(h.stars?' Â· +'+h.stars+' â˜…':'')+'</span></div>';
+        const rankLabel = h.result? (h.result.rank===1?'🥇 1st':h.result.rank===2?'🥈 2nd':h.result.rank===3?'🥉 3rd':h.result.rank+'th') : '—';
+        return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+'</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+' ★':'')+'</span></div>';
       }).join('') : '<div class="subtle">No competitions this period.</div>')
     ) : '')+
   '</div>';
@@ -2050,11 +2046,11 @@ function yearlyReportTable(s, yearOverride){
     totals.newLearnPages+=st.newLearnPages; totals.oldRevisionPages+=st.oldRevisionPages; totals.lastLearnPages+=st.lastLearnPages; totals.totalPages+=st.totalPages;
     totals.points+=st.points; totals.talliesGiven+=st.talliesGiven;
   }
-  // yearly totals for stars/tallies must be computed from the WHOLE year, not summed monthly star snapshots (each month resets floor grouping at 30) â€” use full-year filter directly.
+  // yearly totals for stars/tallies must be computed from the WHOLE year, not summed monthly star snapshots (each month resets floor grouping at 30) — use full-year filter directly.
   const yearStats = computeStats(s.id, filterYear(year));
   const yearComps = studentCompetitionHistory(s.id, filterYear(year));
   return ''+
-  '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'â€”')+' Â· '+esc(year)+' yearly report</div></div>'+
+  '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'—')+' · '+esc(year)+' yearly report</div></div>'+
   '<div class="table-scroll" style="margin-bottom:14px;"><table>'+
     '<tr><th>Month</th><th>New</th><th>Old</th><th>Last Learn</th><th>Total Pg</th><th>Pts</th><th>P.Stars</th><th>A.Stars</th><th>Stars</th><th>Used</th><th>Rem</th><th>Tallies</th><th>Cancl</th><th>T.Rem</th></tr>'+
     rows+
@@ -2078,8 +2074,8 @@ function yearlyReportTable(s, yearOverride){
   '<div class="card" style="margin-top:14px;">'+
     '<div class="section-title small">Competitions This Year</div>'+
     (yearComps.length? yearComps.map(function(h){
-      const rankLabel = h.result? (h.result.rank===1?'ðŸ¥‡ 1st':h.result.rank===2?'ðŸ¥ˆ 2nd':h.result.rank===3?'ðŸ¥‰ 3rd':h.result.rank+'th') : 'â€”';
-      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' â€” '+esc(h.competition.type)+'</span><span class="v">'+rankLabel+(h.stars?' Â· +'+h.stars+' â˜…':'')+'</span></div>';
+      const rankLabel = h.result? (h.result.rank===1?'🥇 1st':h.result.rank===2?'🥈 2nd':h.result.rank===3?'🥉 3rd':h.result.rank+'th') : '—';
+      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+'</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+' ★':'')+'</span></div>';
     }).join('') : '<div class="subtle">No competitions this year.</div>')+
   '</div>';
 }
@@ -2095,8 +2091,8 @@ function renderOverviewReport(){
   const rows = list.map(function(s){
     const st = computeStats(s.id, filterMonth(APP.overviewMonth));
     const comps = studentCompetitionHistory(s.id, filterMonth(APP.overviewMonth));
-    const compSummary = comps.length ? comps.map(function(h){ return h.result && h.result.rank<=3 ? (h.result.rank===1?'ðŸ¥‡':h.result.rank===2?'ðŸ¥ˆ':'ðŸ¥‰') : 'Â·'; }).join(' ') : 'â€”';
-    return '<tr><td>'+esc(s.name)+'</td><td>'+esc(s.batch||'â€”')+'</td><td>'+st.newLearnPages+'</td><td>'+st.oldRevisionPages+'</td><td>'+st.lastLearnPages+'</td>'+
+    const compSummary = comps.length ? comps.map(function(h){ return h.result && h.result.rank<=3 ? (h.result.rank===1?'🥇':h.result.rank===2?'🥈':'🥉') : '·'; }).join(' ') : '—';
+    return '<tr><td>'+esc(s.name)+'</td><td>'+esc(s.batch||'—')+'</td><td>'+st.newLearnPages+'</td><td>'+st.oldRevisionPages+'</td><td>'+st.lastLearnPages+'</td>'+
       '<td>'+st.points+'</td><td>'+st.totalStars+'</td><td>'+st.starsUsed+'</td><td>'+st.starsRemaining+'</td><td>'+st.talliesGiven+'</td><td>'+st.talliesRemaining+'</td><td>'+compSummary+'</td></tr>';
   }).join('');
 
@@ -2135,7 +2131,7 @@ function renderRequestsView(){
     let approvedBox = '';
     let actions = '';
     if(r.type==='session'){
-      detail = 'ðŸ“… Session Request Â· Date: <b>'+fmtDateDisplay(r.date)+'</b> Â· Time: '+esc(r.time||'â€”');
+      detail = '📅 Session Request · Date: <b>'+fmtDateDisplay(r.date)+'</b> · Time: '+esc(r.time||'—');
       if(r.status==='approved'){
         approvedBox = '<div class="banner success" style="margin-top:8px;">Approved Session Time: <b>'+esc(r.approvedTime||r.time||'')+'</b></div>';
       }
@@ -2148,7 +2144,7 @@ function renderRequestsView(){
         '</div>';
       }
     } else {
-      detail = 'ðŸ–ï¸ Leave Request ('+esc(normStatus(r.reason))+') Â· Date: <b>'+fmtDateDisplay(r.date)+'</b>';
+      detail = '🏖️ Leave Request ('+esc(normStatus(r.reason))+') · Date: <b>'+fmtDateDisplay(r.date)+'</b>';
       if(r.status==='pending'){
         actions = '<div style="display:flex;gap:8px;margin-top:10px;">'+
           '<button class="btn small outline" onclick="rejectRequest(\''+r.id+'\',\'leave\')">Reject</button>'+
@@ -2169,7 +2165,7 @@ function renderRequestsView(){
   }).join('');
 
   return ''+
-  '<div style="margin-bottom:12px;"><button class="btn small outline" onclick="goBack()">â† Back</button></div>'+
+  '<div style="margin-bottom:12px;"><button class="btn small outline" onclick="goBack()">← Back</button></div>'+
   '<div class="section-title">Notifications &amp; Requests</div>'+
   (pendingCount===0 ?
     '<div class="banner success" style="margin-bottom:18px;">All student session and leave requests are resolved!</div>' :
@@ -2191,7 +2187,7 @@ function rejectRequest(reqId, kind){
   }
 }
 function approveLeaveRequest(reqId){
-  resolveLeaveRequest(reqId, 'approve').then(function(){ toast('Leave approved â€” added to daily records'); });
+  resolveLeaveRequest(reqId, 'approve').then(function(){ toast('Leave approved — added to daily records'); });
 }
 
 /* ============================= COMPETITIONS (admin) ============================= */
@@ -2210,9 +2206,9 @@ function renderCompetitionsView(){
       '<div class="avatar">'+(c.type==='Qirath'?'Q':'H')+'</div>'+
       '<div class="row-main">'+
         '<div class="row-title">'+esc(c.type)+' Competition</div>'+
-        '<div class="row-sub">'+fmtDateDisplay(c.date)+' Â· Juz '+esc(c.fromJuz)+'â€“'+esc(c.toJuz)+' Â· '+(c.competitorIds||[]).length+' competitors</div>'+
+        '<div class="row-sub">'+fmtDateDisplay(c.date)+' · Juz '+esc(c.fromJuz)+'–'+esc(c.toJuz)+' · '+(c.competitorIds||[]).length+' competitors</div>'+
       '</div>'+
-      '<div class="row-end">'+ (hasMarks? (winnerStudent? '<span class="badge done">ðŸ¥‡ '+esc(winnerStudent.name)+'</span>' : '<span class="badge done">Results in</span>') : '<span class="badge pending">Marks pending</span>') +'</div>'+
+      '<div class="row-end">'+ (hasMarks? (winnerStudent? '<span class="badge done">🥇 '+esc(winnerStudent.name)+'</span>' : '<span class="badge done">Results in</span>') : '<span class="badge pending">Marks pending</span>') +'</div>'+
     '</div>';
   }
 
@@ -2269,15 +2265,15 @@ function openCompetitionDetailModal(compId){
   const cols = competitionColumns(c.type);
   const results = computeCompetitionResults(c);
   const hasMarks = results.some(function(r){ return r.hasMarks; });
-  const medalFor = function(rank){ return rank===1?'ðŸ¥‡':rank===2?'ðŸ¥ˆ':rank===3?'ðŸ¥‰':(rank+'.'); };
+  const medalFor = function(rank){ return rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':(rank+'.'); };
 
   const rows = results.map(function(r){
     const s = byId(APP.students, r.studentId);
-    return '<tr><td>'+medalFor(r.rank)+' '+esc(s?s.name:'â€”')+'</td><td>'+r.m1+'</td><td>'+r.m2+'</td><td>'+r.m3+'</td><td><b>'+r.total+'</b></td><td>'+(COMPETITION_STARS[r.rank]?('+'+COMPETITION_STARS[r.rank]+' â˜…'):'â€”')+'</td></tr>';
+    return '<tr><td>'+medalFor(r.rank)+' '+esc(s?s.name:'—')+'</td><td>'+r.m1+'</td><td>'+r.m2+'</td><td>'+r.m3+'</td><td><b>'+r.total+'</b></td><td>'+(COMPETITION_STARS[r.rank]?('+'+COMPETITION_STARS[r.rank]+' ★'):'—')+'</td></tr>';
   }).join('');
 
   openModal(
-    '<div class="modal-head"><div class="modal-title">'+esc(c.type)+' Competition<span class="sub">'+fmtDateDisplay(c.date)+' Â· Juz '+esc(c.fromJuz)+'â€“'+esc(c.toJuz)+'</span></div>'+
+    '<div class="modal-head"><div class="modal-title">'+esc(c.type)+' Competition<span class="sub">'+fmtDateDisplay(c.date)+' · Juz '+esc(c.fromJuz)+'–'+esc(c.toJuz)+'</span></div>'+
     '<button class="modal-close" onclick="requestCloseModal()">'+iconSvg('close')+'</button></div>'+
     (hasMarks? (
       '<div class="section-title small">Results</div>'+
@@ -2297,7 +2293,7 @@ function openCompetitionMarksModal(compId){
   const competitors = (c.competitorIds||[]).map(function(sid){ return byId(APP.students, sid); }).filter(Boolean);
   GUARD_NEXT = true;
   openModal(
-    '<div class="modal-head"><div class="modal-title">Enter Marks<span class="sub">'+esc(c.type)+' Â· '+fmtDateDisplay(c.date)+'</span></div>'+
+    '<div class="modal-head"><div class="modal-title">Enter Marks<span class="sub">'+esc(c.type)+' · '+fmtDateDisplay(c.date)+'</span></div>'+
     '<button class="modal-close" onclick="requestCloseModal()">'+iconSvg('close')+'</button></div>'+
     competitors.map(function(s){
       const m = (c.marks && c.marks[s.id]) || {};
@@ -2353,16 +2349,16 @@ function renderSettingsView(){
   '</div>'+
   '<div class="row-card" style="margin-bottom:18px;" onclick="goView(\'login-settings\')">'+
     '<div class="avatar">'+iconSvg('user')+'</div>'+
-    '<div class="row-main"><div class="row-title">Login Settings</div><div class="row-sub">Admin login Â· Teacher accounts Â· Security</div></div>'+
+    '<div class="row-main"><div class="row-title">Login Settings</div><div class="row-sub">Admin login · Teacher accounts · Security</div></div>'+
     '<div style="color:var(--ink-faint);width:18px;height:18px;">'+iconSvg('chevron')+'</div>'+
   '</div>'+
   '<div class="info-box">'+
     '<b>Rules Summary</b><br/><br/>'+
-    'â€¢ <b>Hifz Students:</b> Current Juz is set automatically from New Learn sessions (e.g. Juz 5, pages 15â€“17 â†’ Juz 5 - Pg 17). Every Juz has 20 pages; a Juz completes when page 20 is recited and marked Clear. Admission Starting Juz is fixed.<br/>'+
-    'â€¢ <b>Doura Students:</b> Recitations track through Juz 1â€“30 (20 pages each). When Juz 30 is completed, the Doura counter increases automatically and the next Doura restarts from Juz 1.<br/>'+
-    'â€¢ <b>Starâ€“Tally Offset:</b> 1 Star cancels 2 Tallies automatically. Total Stars Earned is preserved permanently.<br/>'+
-    'â€¢ <b>Competitions:</b> ðŸ¥‡ 1st Place = +5â˜… ðŸ¥ˆ 2nd Place = +3â˜… ðŸ¥‰ 3rd Place = +2â˜… â€” automatically awarded into the Star Board above.<br/>'+
-    'â€¢ "Not Recited" automatically adds 2 Tallies; "Not Reported" adds 5 Tallies.'+
+    '• <b>Hifz Students:</b> Current Juz is set automatically from New Learn sessions (e.g. Juz 5, pages 15–17 → Juz 5 - Pg 17). Every Juz has 20 pages; a Juz completes when page 20 is recited and marked Clear. Admission Starting Juz is fixed.<br/>'+
+    '• <b>Doura Students:</b> Recitations track through Juz 1–30 (20 pages each). When Juz 30 is completed, the Doura counter increases automatically and the next Doura restarts from Juz 1.<br/>'+
+    '• <b>Star–Tally Offset:</b> 1 Star cancels 2 Tallies automatically. Total Stars Earned is preserved permanently.<br/>'+
+    '• <b>Competitions:</b> 🥇 1st Place = +5★ 🥈 2nd Place = +3★ 🥉 3rd Place = +2★ — automatically awarded into the Star Board above.<br/>'+
+    '• "Not Recited" automatically adds 2 Tallies; "Not Reported" adds 5 Tallies.'+
   '</div>';
 }
 /* ============================= LOGIN SETTINGS (admin only) ============================= */
@@ -2370,7 +2366,7 @@ function permSummary(u){
   const names = {students:'Students',records:'Records',requests:'Requests',competitions:'Competitions',reports:'Reports'};
   const p = u.permissions || {};
   const on = TEACHER_PERMS.filter(function(x){ return p[x[0]]; }).map(function(x){ return names[x[0]]; });
-  return on.length ? on.join(' Â· ') : 'No access yet';
+  return on.length ? on.join(' · ') : 'No access yet';
 }
 function renderLoginSettingsView(){
   if(!isAdmin()) return '<div class="empty"><p>Only an administrator can manage logins.</p></div>';
@@ -2385,7 +2381,7 @@ function renderLoginSettingsView(){
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
         '<div style="min-width:0;"><div class="row-title">'+esc(u.name||'Teacher')+'</div><div class="row-sub">@'+esc(u.username)+'</div></div>'+badge+
       '</div>'+
-      '<div class="subtle" style="margin:8px 0;">'+esc(permSummary(u))+' Â· '+esc(scope)+'</div>'+
+      '<div class="subtle" style="margin:8px 0;">'+esc(permSummary(u))+' · '+esc(scope)+'</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
         '<button class="btn small outline" onclick="openTeacherModal(\''+u.id+'\')">'+iconSvg('edit')+' Edit</button>'+
         '<button class="btn small outline" onclick="toggleTeacherActive(\''+u.id+'\')">'+(u.active===false?'Enable':'Disable')+'</button>'+
@@ -2393,11 +2389,11 @@ function renderLoginSettingsView(){
     '</div>';
   }).join('') : '<div class="subtle" style="margin-bottom:10px;">No teacher accounts yet.</div>';
   return ''+
-  '<div style="margin-bottom:12px;"><button class="btn small outline" onclick="goView(\'settings\')">â† Settings</button></div>'+
+  '<div style="margin-bottom:12px;"><button class="btn small outline" onclick="goView(\'settings\')">← Settings</button></div>'+
   '<div class="section-title">Login Settings</div>'+
   // A) Admin
   '<div class="card" style="margin-bottom:18px;">'+
-    '<div class="section-title small">A Â· Admin Login</div>'+
+    '<div class="section-title small">A · Admin Login</div>'+
     (admin.isDefault ? '<div class="banner" style="color:var(--error);background:var(--error-bg);border-color:var(--error-border);margin-bottom:12px;">You are still using the default admin password. Please change it now.</div>' : '')+
     '<div class="field"><label>Username</label><input id="al-user" type="text" autocomplete="off" value="'+esc(admin.username||'admin')+'"></div>'+
     '<div class="field"><label>Current Password</label><input id="al-cur" type="password" autocomplete="current-password" placeholder="Required to save changes"></div>'+
@@ -2409,13 +2405,13 @@ function renderLoginSettingsView(){
   // B) Teachers
   '<div class="card" style="margin-bottom:18px;">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'+
-      '<div class="section-title small" style="margin:0;">B Â· Teacher Logins</div>'+
+      '<div class="section-title small" style="margin:0;">B · Teacher Logins</div>'+
       '<button class="btn small" onclick="openTeacherModal()">'+iconSvg('plus')+' Add Teacher</button>'+
     '</div>'+ rows +
   '</div>'+
   // C) Secure management
   '<div class="card" style="margin-bottom:18px;">'+
-    '<div class="section-title small">C Â· Secure Login Management</div>'+
+    '<div class="section-title small">C · Secure Login Management</div>'+
     '<div class="kv"><span class="k">Password storage</span><span class="v">Salted PBKDF2-SHA256</span></div>'+
     '<div class="kv"><span class="k">Secured accounts</span><span class="v">'+hashedCount+'</span></div>'+
     '<div class="kv"><span class="k">Legacy readable passwords</span><span class="v" style="color:'+(legacyCount?'var(--primary)':'inherit')+';">'+legacyCount+'</span></div>'+
@@ -2568,26 +2564,26 @@ function renderParentDashboard(){
   if(isDoura){
     const dd = douraCurrentDisplay(sid);
     progressRows =
-      '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'â€”')+'</span></div>'+
+      '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'—')+'</span></div>'+
       '<div class="kv"><span class="k">Completed Douras (Full 30 Juz)</span><span class="v">'+dd.completed+' Completed</span></div>';
   } else {
     const hd = hifzCurrentDisplay(sid);
     progressRows =
-      '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'â€”')+'</span></div>'+
+      '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'—')+'</span></div>'+
       (s.hifzCompleted?'<div class="kv"><span class="k">Status</span><span class="v">Hifz complete</span></div>':'');
   }
 
   return ''+
   dashGreeting()+
   '<div style="background:var(--primary);border-radius:var(--radius-m);padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
-    '<div><div style="color:#fff;font-size:15px;font-weight:700;">'+esc(s.batch||'â€”')+'</div>'+
+    '<div><div style="color:#fff;font-size:15px;font-weight:700;">'+esc(s.batch||'—')+'</div>'+
     '<div style="color:var(--on-hero);font-size:12.5px;margin-top:3px;">Study Type: '+esc(s.studyType||'Hifz')+'</div></div>'+
     '<span style="background:var(--hero-soft);color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap;">'+esc(progressBadge)+'</span>'+
   '</div>'+
   '<div class="grid-2" style="margin-bottom:14px;">'+
-    '<div class="stat-card"><div class="stat-num num" style="font-size:20px;">â˜… '+stats.starsRemaining+'</div><div class="stat-label">Stars Remaining ('+stats.totalStars+' Earned)</div></div>'+
+    '<div class="stat-card"><div class="stat-num num" style="font-size:20px;">★ '+stats.starsRemaining+'</div><div class="stat-label">Stars Remaining ('+stats.totalStars+' Earned)</div></div>'+
     '<div class="stat-card"><div class="stat-num num" style="font-size:20px;">'+stats.talliesRemaining+'</div><div class="stat-label">Active Tallies ('+stats.talliesCancelled+' Cancelled)</div></div>'+
-    '<div class="stat-card today-hl" style="grid-column:1/3;"><div class="stat-num num'+(todayRec && normStatus(todayRec.status)==='Recited' ? ' st-recited' : '')+'" style="font-size:18px;">'+(todayRec? esc(normStatus(todayRec.status)) : 'Pending')+'</div><div class="stat-label"><b>Today</b> Â· '+fmtDateDisplay(today)+'</div></div>'+
+    '<div class="stat-card today-hl" style="grid-column:1/3;"><div class="stat-num num'+(todayRec && normStatus(todayRec.status)==='Recited' ? ' st-recited' : '')+'" style="font-size:18px;">'+(todayRec? esc(normStatus(todayRec.status)) : 'Pending')+'</div><div class="stat-label"><b>Today</b> · '+fmtDateDisplay(today)+'</div></div>'+
   '</div>'+
   '<div class="card" style="margin-bottom:14px;">'+
     '<div class="section-title small">Quran Progress Tracking</div>'+
@@ -2626,8 +2622,8 @@ function renderParentRecitations(){
     const isT = se.date===todayStr();
     return '<div class="session-item'+(isT?' today-hl':'')+'">'+
       '<div class="n">'+se.sessionNo+'</div>'+
-      '<div class="info"><div class="t">'+esc(sessionTypeLabel(se.type))+' Â· Juz '+esc(se.juz||'â€”')+' Â· '+(isT?'<b>'+fmtDateDisplay(se.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(se.date))+'</div>'+
-      '<div class="d">Pg '+esc(se.fromPage)+'â€“'+esc(se.toPage)+' Â· '+esc(se.mistakes||0)+' mistakes Â· '+esc(se.result)+'</div></div>'+
+      '<div class="info"><div class="t">'+esc(sessionTypeLabel(se.type))+' · Juz '+esc(se.juz||'—')+' · '+(isT?'<b>'+fmtDateDisplay(se.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(se.date))+'</div>'+
+      '<div class="d">Pg '+esc(se.fromPage)+'–'+esc(se.toPage)+' · '+esc(se.mistakes||0)+' mistakes · '+esc(se.result)+'</div></div>'+
     '</div>';
   }).join('');
   return ''+
@@ -2651,13 +2647,13 @@ function renderParentProfile(){
   '<div class="card" style="margin-bottom:18px;">'+
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">'+
       '<div class="avatar" style="width:46px;height:46px;font-size:16px;">'+esc(initials(s.name))+'</div>'+
-      '<div><div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;font-weight:600;">'+esc(s.name)+'</div><div class="subtle">'+esc(s.batch||'â€”')+'</div></div>'+
+      '<div><div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;font-weight:600;">'+esc(s.name)+'</div><div class="subtle">'+esc(s.batch||'—')+'</div></div>'+
     '</div>'+
     '<div class="kv"><span class="k">Study Type</span><span class="v">'+esc(s.studyType||'Hifz')+'</span></div>'+
     '<div class="kv"><span class="k">Admission Date</span><span class="v">'+fmtDateDisplay(s.joiningDate)+'</span></div>'+
-    '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'â€”')+'</span></div>'+
+    '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'—')+'</span></div>'+
     '<div class="kv"><span class="k">Current Juz</span><span class="v">'+esc(juzLabel(s.studyType==='Doura' ? douraCurrentDisplay(sid) : hifzCurrentDisplay(sid)))+'</span></div>'+
-    '<div class="kv"><span class="k">Login Username</span><span class="v">'+esc(s.loginUsername||'â€”')+'</span></div>'+
+    '<div class="kv"><span class="k">Login Username</span><span class="v">'+esc(s.loginUsername||'—')+'</span></div>'+
   '</div>'+
   '<div class="section-title small">Performance Reports</div>'+
   '<div class="seg" style="margin-bottom:14px;">'+
@@ -2676,8 +2672,8 @@ function renderParentRequests(){
   const rows = myRequests.map(function(r){
     const statusBadge = r.status==='pending' ? '<span class="badge warn">pending</span>' : r.status==='approved' ? '<span class="badge success">approved</span>' : '<span class="badge inactive">rejected</span>';
     const detail = r.type==='session' ?
-      ('ðŸ“… Session Request Â· Date: <b>'+fmtDateDisplay(r.date)+'</b> Â· Time: '+esc(r.time||'â€”')) :
-      ('ðŸ–ï¸ Leave Request ('+esc(normStatus(r.reason))+') Â· Date: <b>'+fmtDateDisplay(r.date)+'</b>');
+      ('📅 Session Request · Date: <b>'+fmtDateDisplay(r.date)+'</b> · Time: '+esc(r.time||'—')) :
+      ('🏖️ Leave Request ('+esc(normStatus(r.reason))+') · Date: <b>'+fmtDateDisplay(r.date)+'</b>');
     const approvedBox = (r.type==='session' && r.status==='approved') ?
       '<div class="banner success" style="margin-top:8px;">Approved Session Time: <b>'+esc(r.approvedTime||r.time||'')+'</b></div>' : '';
     return '<div class="card" style="margin-bottom:12px;">'+
@@ -2751,15 +2747,15 @@ function renderParentCompetitions(){
   const hist = studentCompetitionHistory(sid, filterAll());
   const rows = hist.map(function(h){
     const cols = competitionColumns(h.competition.type);
-    const rankLabel = h.result ? (h.result.rank===1?'ðŸ¥‡ 1st Place':h.result.rank===2?'ðŸ¥ˆ 2nd Place':h.result.rank===3?'ðŸ¥‰ 3rd Place':h.result.rank+'th Place') : 'Not yet marked';
+    const rankLabel = h.result ? (h.result.rank===1?'🥇 1st Place':h.result.rank===2?'🥈 2nd Place':h.result.rank===3?'🥉 3rd Place':h.result.rank+'th Place') : 'Not yet marked';
     return '<div class="card" style="margin-bottom:10px;">'+
       '<b>'+esc(h.competition.type)+' Competition</b>'+
-      '<div class="subtle" style="margin:2px 0 8px 0;">'+fmtDateDisplay(h.competition.date)+' Â· Juz '+esc(h.competition.fromJuz)+'â€“'+esc(h.competition.toJuz)+'</div>'+
+      '<div class="subtle" style="margin:2px 0 8px 0;">'+fmtDateDisplay(h.competition.date)+' · Juz '+esc(h.competition.fromJuz)+'–'+esc(h.competition.toJuz)+'</div>'+
       (h.result && h.result.hasMarks ? (
         '<div class="kv"><span class="k">'+cols[0]+'</span><span class="v">'+h.result.m1+'</span></div>'+
         '<div class="kv"><span class="k">'+cols[1]+'</span><span class="v">'+h.result.m2+'</span></div>'+
         '<div class="kv"><span class="k">'+cols[2]+'</span><span class="v">'+h.result.m3+'</span></div>'+
-        '<div class="kv"><span class="k">Result</span><span class="v">'+rankLabel+(h.stars?' Â· +'+h.stars+' â˜…':'')+'</span></div>'
+        '<div class="kv"><span class="k">Result</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+' ★':'')+'</span></div>'
       ) : '<div class="subtle">Marks not entered yet.</div>')+
     '</div>';
   }).join('');
@@ -2812,9 +2808,9 @@ function handleRestoreFileSelected(event){
   reader.onload = function(e){
     let data;
     try{ data = JSON.parse(e.target.result); }
-    catch(err){ toast('Could not read that file â€” make sure it is a valid backup JSON.'); return; }
+    catch(err){ toast('Could not read that file — make sure it is a valid backup JSON.'); return; }
     PENDING_CONFIRM = function(){ restoreBackupData(data); };
-    openConfirmModal('Restore Backup', 'This will merge the backup file into your current data â€” matching records will be overwritten, nothing else is deleted.', 'Restore');
+    openConfirmModal('Restore Backup', 'This will merge the backup file into your current data — matching records will be overwritten, nothing else is deleted.', 'Restore');
   };
   reader.readAsText(file);
 }
@@ -2861,7 +2857,7 @@ async function loadDemoData(){
   await addLeaveRequest(zaydId, todayStr(), 'Sick', 'Fever and doctor visit');
   const zaydReq = APP.requests.filter(function(r){ return r.studentId===zaydId; })[0];
   if(zaydReq){ await resolveLeaveRequest(zaydReq.id, 'approve'); }
-  toast('Demo data loaded â€” parent logins: abdullah / zayd, password demo123');
+  toast('Demo data loaded — parent logins: abdullah / zayd, password demo123');
 }
 function confirmResetAllData(){
   if(!requireAdmin()) return;
@@ -2893,11 +2889,10 @@ async function printReport(){
   });
   const styleEl = document.querySelector('style');
   const css = styleEl ? styleEl.textContent : '';
-  const title = 'Illuminated Hearts â€” Report '+todayStr();
+  const title = 'Illuminated Hearts — Report '+todayStr();
   const html = '<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'+
-    '<title>'+title+'</title><style>'+css+'\n#main-content{padding:16px;max-width:100%;}body{background:#fff;color:#2B1B18;}.table-scroll{overflow:visible;}@media print{.table-scroll th:first-child,.table-scroll td:first-child{position:static;}}</style>
-</head><body>'+
-    '<div style="font-family:Arial,sans-serif;font-size:20px;font-weight:600;padding:16px 16px 0;">Illuminated Hearts â€” Hifz Academy</div>'+
+    '<title>'+title+'</title><style>'+css+'\n#main-content{padding:16px;max-width:100%;}body{background:#fff;color:#2B1B18;}.table-scroll{overflow:visible;}@media print{.table-scroll th:first-child,.table-scroll td:first-child{position:static;}}</style></head><body>'+
+    '<div style="font-family:Arial,sans-serif;font-size:20px;font-weight:600;padding:16px 16px 0;">Illuminated Hearts — Hifz Academy</div>'+
     '<div id="main-content">'+clone.innerHTML+'</div>'+
     '<script>window.addEventListener("load",function(){setTimeout(function(){try{window.print();}catch(e){}},500);});<\/script></body></html>';
   let handled = false;
@@ -2910,7 +2905,7 @@ async function printReport(){
       }
     }
   }catch(e){ handled = false; }
-  if(handled){ toast('Report saved â€” open it to print or save as PDF'); }
+  if(handled){ toast('Report saved — open it to print or save as PDF'); }
   else { try{ window.print(); }catch(e){ toast('Printing is not available in this view'); } }
 }
 
@@ -2933,7 +2928,7 @@ async function downloadCsv(filename, rows){
     }
   }catch(e){ handled = false; }
   if(!handled){
-    toast('Downloads not available in this view â€” use Print instead.');
+    toast('Downloads not available in this view — use Print instead.');
   }
 }
 function exportStudentCsv(){
@@ -3041,7 +3036,7 @@ function runPendingConfirm(){
 /* ---- Pick student (for quick actions) ---- */
 function openPickStudentModal(kind){
   const list = VS().filter(s=>s.active!==false).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  const titles = {daily:'Pick a student â€” Today\'s Record', session:'Pick a student â€” Recitation', achievement:'Pick a student â€” Achievement Star', tally:'Pick a student â€” Tally'};
+  const titles = {daily:'Pick a student — Today\'s Record', session:'Pick a student — Recitation', achievement:'Pick a student — Achievement Star', tally:'Pick a student — Tally'};
   openModal(
     '<div class="modal-head"><div class="modal-title">'+titles[kind]+'</div>'+
     '<button class="modal-close" onclick="requestCloseModal()">'+iconSvg('close')+'</button></div>'+
@@ -3049,7 +3044,7 @@ function openPickStudentModal(kind){
     '<div class="list" id="pick-list">'+ list.map(function(s){
       return '<div class="row-card" data-name="'+esc((s.name||'').toLowerCase())+'" onclick="pickStudentFor(\''+kind+'\',\''+s.id+'\')">'+
         '<div class="avatar">'+esc(initials(s.name))+'</div>'+
-        '<div class="row-main"><div class="row-title">'+esc(s.name)+'</div><div class="row-sub">'+esc(s.batch||'â€”')+'</div></div>'+
+        '<div class="row-main"><div class="row-title">'+esc(s.name)+'</div><div class="row-sub">'+esc(s.batch||'—')+'</div></div>'+
       '</div>';
     }).join('') +'</div>'
   );
@@ -3087,10 +3082,10 @@ function openStudentFormModal(studentId){
       '<div class="field"><label>Admission Date</label><input id="sf-join" type="date" value="'+esc(s?s.joiningDate:todayStr())+'"></div>'+
       '<div class="field"><label>Starting Juz</label><input id="sf-juz" type="number" min="1" max="30" value="'+esc(s?s.currentJuz:'')+'"></div>'+
     '</div>'+
-    '<div class="subtle" style="margin:-6px 0 14px 0;">Starting Juz is the student\'s admission point and stays fixed â€” it never changes automatically.</div>'+
+    '<div class="subtle" style="margin:-6px 0 14px 0;">Starting Juz is the student\'s admission point and stays fixed — it never changes automatically.</div>'+
     '<div class="field-row">'+
       '<div class="field"><label>Current Juz</label><input id="sf-cjw" type="number" min="1" max="30" step="1" value="'+esc(formCur.whole)+'"></div>'+
-      '<div class="field"><label>Last Page Reached (0â€“20)</label><input id="sf-cjp" type="number" min="0" max="20" step="1" value="'+esc(formCur.page)+'"></div>'+
+      '<div class="field"><label>Last Page Reached (0–20)</label><input id="sf-cjp" type="number" min="0" max="20" step="1" value="'+esc(formCur.page)+'"></div>'+
     '</div>'+
     '<div class="subtle" style="margin:-6px 0 14px 0;">Current Juz and page advance automatically when page 20 is recited and marked Clear. Edit them here to correct a student\'s position.</div>'+
     '<div id="sf-doura-fields" style="display:'+(studyType==='Doura'?'block':'none')+';">'+
@@ -3103,7 +3098,7 @@ function openStudentFormModal(studentId){
       '<div class="field"><label>Username</label><input id="sf-login-user" type="text" autocomplete="off" value="'+esc(s?(s.loginUsername||''):'')+'" placeholder="e.g. hamid1"></div>'+
       '<div class="field"><label>Password</label><input id="sf-login-pass" type="password" autocomplete="new-password" value="" placeholder="'+(s&&s.loginUsername?'Leave blank to keep':'Set a password')+'"></div>'+
     '</div>'+
-    '<div class="subtle" style="margin:-6px 0 14px 0;">Lets this student\'s parent log in and view only their own profile, progress, and requests. Passwords are stored as salted hashes and cannot be viewed later â€” enter a new one to reset.</div>' : '')+
+    '<div class="subtle" style="margin:-6px 0 14px 0;">Lets this student\'s parent log in and view only their own profile, progress, and requests. Passwords are stored as salted hashes and cannot be viewed later — enter a new one to reset.</div>' : '')+
     (s? '<div class="field"><label>Status</label><div class="seg"><button type="button" class="'+(s.active!==false?'active':'')+'" onclick="this.parentNode.querySelectorAll(\'button\').forEach(b=>b.classList.remove(\'active\'));this.classList.add(\'active\');this.setAttribute(\'data-val\',\'1\');" id="sf-active-yes" data-val="1">Active</button><button type="button" class="'+(s.active===false?'active':'')+'" onclick="document.getElementById(\'sf-active-yes\').classList.remove(\'active\');document.getElementById(\'sf-active-yes\').setAttribute(\'data-val\',\'0\');this.classList.add(\'active\');" id="sf-active-no">Inactive</button></div></div>' : '')+
     '<div class="modal-actions">'+
       (s && isAdmin() && !studentHasHistory(s.id) ? '<button class="btn danger" onclick="confirmDeleteStudent(\''+s.id+'\')">Remove</button>' : '')+
@@ -3175,7 +3170,7 @@ async function submitStudentForm(studentId, btnEl){
       try{
         const h = await hashPassword(loginPassword);
         data.loginHash = h.hash; data.loginSalt = h.salt; data.loginIter = h.iter; data.loginPassword = '';
-      }catch(e){ toast('Secure hashing unavailable â€” password not saved'); STUDENT_FORM_SUBMITTING=false; if(btnEl){ btnEl.removeAttribute('disabled'); } return; }
+      }catch(e){ toast('Secure hashing unavailable — password not saved'); STUDENT_FORM_SUBMITTING=false; if(btnEl){ btnEl.removeAttribute('disabled'); } return; }
     }
   }
   const cdEl = document.getElementById('sf-cd');
@@ -3213,19 +3208,19 @@ function studentProfileDetailHtml(studentId, isAdmin){
     const dd = douraCurrentDisplay(studentId);
     progressHtml =
       '<div class="kv"><span class="k">Study Type</span><span class="v">Doura</span></div>'+
-      '<div class="kv"><span class="k">Starting Juz</span><span class="v">'+esc(s.currentJuz||'â€”')+'</span></div>'+
+      '<div class="kv"><span class="k">Starting Juz</span><span class="v">'+esc(s.currentJuz||'—')+'</span></div>'+
       '<div class="kv"><span class="k">Current Juz</span><span class="v">'+esc(juzLabel(dd))+'</span></div>'+
       '<div class="kv"><span class="k">Completed Douras</span><span class="v">'+dd.completed+'</span></div>'+(s.legacyJuzPages?'<div class="banner" style="margin-top:8px;">Previous page count was '+esc(s.legacyJuzPages)+' (more than 20). Please check this student\'s current page.</div>':'');
   } else {
     const hd = hifzCurrentDisplay(studentId);
     progressHtml =
       '<div class="kv"><span class="k">Study Type</span><span class="v">Hifz</span></div>'+
-      '<div class="kv"><span class="k">Starting Juz</span><span class="v">'+esc(s.currentJuz||'â€”')+'</span></div>'+
+      '<div class="kv"><span class="k">Starting Juz</span><span class="v">'+esc(s.currentJuz||'—')+'</span></div>'+
       '<div class="kv"><span class="k">Current Juz</span><span class="v">'+esc(juzLabel(hd))+'</span></div>'+(s.hifzCompleted?'<div class="kv"><span class="k">Status</span><span class="v">Hifz complete</span></div>':'')+(s.legacyJuzPages?'<div class="banner" style="margin-top:8px;">Previous page count was '+esc(s.legacyJuzPages)+' (more than 20). Please check this student\'s current page.</div>':'');
   }
 
   return ''+
-    '<div class="kv"><span class="k">Batch</span><span class="v">'+esc(s.batch||'â€”')+'</span></div>'+
+    '<div class="kv"><span class="k">Batch</span><span class="v">'+esc(s.batch||'—')+'</span></div>'+
     '<div class="kv"><span class="k">Admission Date</span><span class="v">'+fmtDateDisplay(s.joiningDate)+'</span></div>'+
     progressHtml+
     (s.progressReview && can('records') ? '<div class="banner" style="margin-top:10px;">'+(s.progressNote ? '<b>Please review Current Juz:</b> '+esc(s.progressNote) : 'Earlier sessions for this student were recorded under the previous progress method, so Current Juz was kept as it was. New Learn sessions saved from now on build on it.')+' <button class="btn small outline" style="margin-top:8px;" onclick="markProgressReviewed(\''+s.id+'\')">Mark as reviewed</button></div>' : '')+
@@ -3241,24 +3236,24 @@ function studentProfileDetailHtml(studentId, isAdmin){
     '<div class="kv"><span class="k">Total Recitation Sessions</span><span class="v">'+stats.sessionsCount+'</span></div>'+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Daily Records</div>'+
-    (drHist.length? '<div class="list">'+ drHist.map(function(r){ const isT = r.date===todayStr(), rec = normStatus(r.status)==='Recited'; return '<div class="kv'+(isT?' today-hl':'')+'"><span class="k">'+(isT?'<b>'+fmtDateDisplay(r.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(r.date))+' â€” '+(rec?'<span class="st-recited">Recited</span>':esc(normStatus(r.status)))+'</span><span class="v">'+r.performance+'/10</span></div>'; }).join('') +'</div>' : '<div class="subtle">No records yet.</div>')+
+    (drHist.length? '<div class="list">'+ drHist.map(function(r){ const isT = r.date===todayStr(), rec = normStatus(r.status)==='Recited'; return '<div class="kv'+(isT?' today-hl':'')+'"><span class="k">'+(isT?'<b>'+fmtDateDisplay(r.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(r.date))+' — '+(rec?'<span class="st-recited">Recited</span>':esc(normStatus(r.status)))+'</span><span class="v">'+r.performance+'/10</span></div>'; }).join('') +'</div>' : '<div class="subtle">No records yet.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Achievements</div>'+
-    (achHist.length? '<div class="list">'+ achHist.map(function(a){ return '<div class="kv"><span class="k">'+fmtDateDisplay(a.date)+' â€” '+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+' â˜…</span></div>'; }).join('') +'</div>' : '<div class="subtle">No achievements yet.</div>')+
+    (achHist.length? '<div class="list">'+ achHist.map(function(a){ return '<div class="kv"><span class="k">'+fmtDateDisplay(a.date)+' — '+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+' ★</span></div>'; }).join('') +'</div>' : '<div class="subtle">No achievements yet.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Tallies</div>'+
-    (talHist.length? '<div class="list">'+ talHist.map(function(t){ return '<div class="kv"><span class="k">'+fmtDateDisplay(t.date)+' â€” '+esc(t.reason||t.type)+'</span><span class="v">+'+t.count+' ('+esc(t.type)+')</span></div>'; }).join('') +'</div>' : '<div class="subtle">No tallies yet.</div>')+
+    (talHist.length? '<div class="list">'+ talHist.map(function(t){ return '<div class="kv"><span class="k">'+fmtDateDisplay(t.date)+' — '+esc(t.reason||t.type)+'</span><span class="v">+'+t.count+' ('+esc(t.type)+')</span></div>'; }).join('') +'</div>' : '<div class="subtle">No tallies yet.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Competitions</div>'+
     (compHist.length? '<div class="list">'+ compHist.map(function(h){
-      const rankLabel = h.result ? (h.result.rank===1?'ðŸ¥‡ 1st':h.result.rank===2?'ðŸ¥ˆ 2nd':h.result.rank===3?'ðŸ¥‰ 3rd':h.result.rank+'th') : 'â€”';
-      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' â€” '+esc(h.competition.type)+' Competition</span><span class="v">'+rankLabel+(h.stars?' Â· +'+h.stars+' â˜…':'')+'</span></div>';
+      const rankLabel = h.result ? (h.result.rank===1?'🥇 1st':h.result.rank===2?'🥈 2nd':h.result.rank===3?'🥉 3rd':h.result.rank+'th') : '—';
+      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+' Competition</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+' ★':'')+'</span></div>';
     }).join('') +'</div>' : '<div class="subtle">No competitions yet.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Session &amp; Leave Requests</div>'+
     (reqHist.length? '<div class="list">'+ reqHist.map(function(r){
-      const label = r.type==='session' ? ('Session Â· '+fmtDateDisplay(r.date)+' '+esc(r.time||'')) : ('Leave ('+esc(normStatus(r.reason))+') Â· '+fmtDateDisplay(r.date));
-      const statusLabel = r.status==='approved' ? (r.type==='session' ? 'Approved Â· '+esc(r.approvedTime||r.time||'') : 'Approved') : (r.status==='rejected'?'Rejected':'Pending');
+      const label = r.type==='session' ? ('Session · '+fmtDateDisplay(r.date)+' '+esc(r.time||'')) : ('Leave ('+esc(normStatus(r.reason))+') · '+fmtDateDisplay(r.date));
+      const statusLabel = r.status==='approved' ? (r.type==='session' ? 'Approved · '+esc(r.approvedTime||r.time||'') : 'Approved') : (r.status==='rejected'?'Rejected':'Pending');
       return '<div class="kv"><span class="k">'+label+'</span><span class="v">'+statusLabel+'</span></div>';
     }).join('') +'</div>' : '<div class="subtle">No requests yet.</div>');
 }
@@ -3268,7 +3263,7 @@ function openStudentProfile(studentId){
   if(!s) return;
   openModal(
     '<div class="modal-head">'+
-      '<div class="modal-title">'+esc(s.name)+'<span class="sub">Batch: '+esc(s.batch||'â€”')+(s.active===false?' Â· Inactive':'')+'</span></div>'+
+      '<div class="modal-title">'+esc(s.name)+'<span class="sub">Batch: '+esc(s.batch||'—')+(s.active===false?' · Inactive':'')+'</span></div>'+
       '<button class="modal-close" onclick="requestCloseModal()">'+iconSvg('close')+'</button>'+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
@@ -3293,7 +3288,7 @@ function openDailyEntryModal(studentId, date){
   GUARD_NEXT = true;
   openModal(
     '<div class="modal-head">'+
-      '<div class="modal-title">'+esc(s.name)+'<span class="sub">'+fmtDateDisplay(date)+' Â· '+esc(s.batch||'â€”')+'</span></div>'+
+      '<div class="modal-title">'+esc(s.name)+'<span class="sub">'+fmtDateDisplay(date)+' · '+esc(s.batch||'—')+'</span></div>'+
       '<button class="modal-close" onclick="requestCloseModal()">'+iconSvg('close')+'</button>'+
     '</div>'+
     '<div class="field"><label>Status</label>'+
@@ -3307,7 +3302,7 @@ function openDailyEntryModal(studentId, date){
     '</div>'+
     '<div id="de-sessions-list">'+renderModalSessionsList(studentId,date)+'</div>'+
     '<div class="divider"></div>'+
-    '<div class="field"><label>Performance Score (0â€“10)</label>'+
+    '<div class="field"><label>Performance Score (0–10)</label>'+
       '<input id="de-score" type="number" min="0" max="10" value="'+(rec?rec.performance:0)+'"></div>'+
     '<div class="field"><label>Remarks</label><textarea id="de-remarks" placeholder="Optional remarks">'+esc(rec?rec.remarks:'')+'</textarea></div>'+
     '<div class="modal-actions">'+
@@ -3329,8 +3324,8 @@ function renderModalSessionsList(studentId,date){
   return MODAL_SESSIONS.map(function(sess, idx){
     return '<div class="session-item">'+
       '<div class="n">'+sess.sessionNo+'</div>'+
-      '<div class="info"><div class="t">'+esc(sessionTypeLabel(sess.type))+' Â· Juz '+esc(sess.juz||'â€”')+'</div>'+
-      '<div class="d">Pg '+esc(sess.fromPage)+'â€“'+esc(sess.toPage)+' Â· '+esc(sess.mistakes||0)+' mistakes Â· '+esc(sess.result)+'</div></div>'+
+      '<div class="info"><div class="t">'+esc(sessionTypeLabel(sess.type))+' · Juz '+esc(sess.juz||'—')+'</div>'+
+      '<div class="d">Pg '+esc(sess.fromPage)+'–'+esc(sess.toPage)+' · '+esc(sess.mistakes||0)+' mistakes · '+esc(sess.result)+'</div></div>'+
       '<button class="icon-btn" onclick="openSessionModal(\''+studentId+'\',\''+date+'\','+idx+')">'+iconSvg('edit')+'</button>'+
       '<button class="icon-btn" onclick="removeModalSession('+idx+')">'+iconSvg('trash')+'</button>'+
     '</div>';
