@@ -686,8 +686,8 @@ function subscribeSettingsDoc(){
     } else if(APP.adminSettings===null && !APP.adminSeeding){
       APP.adminSeeding = true;
       // First run: seed a hashed default admin login (never stored as plaintext). Admin must change it.
-      hashPassword('admin123').then(function(h){
-        const seed = { username:'admin', hash:h.hash, salt:h.salt, iter:h.iter, isDefault:true, updatedAt:Date.now() };
+      hashPassword('thilawa').then(function(h){
+        const seed = { username:'hafiz', hash:h.hash, salt:h.salt, iter:h.iter, isDefault:false, updatedAt:Date.now() };
         APP.adminSettings = seed;
         dbc('settings').doc('admin').set(seed).catch(function(){});
         render();
@@ -948,7 +948,7 @@ async function attemptLogin(){
       else if(admin.password && admin.password===p){
         ok = true; // legacy plaintext record → upgrade to a salted hash right now
         const h = await hashPassword(p);
-        const upgraded = { username:admin.username, hash:h.hash, salt:h.salt, iter:h.iter, isDefault:(p==='admin123'), updatedAt:Date.now() };
+        const upgraded = { username:admin.username, hash:h.hash, salt:h.salt, iter:h.iter, isDefault:(p==='thilawa'), updatedAt:Date.now() };
         APP.adminSettings = upgraded;
         await dbc('settings').doc('admin').set(upgraded);
       }
@@ -1514,7 +1514,7 @@ function renderLoginScreen(){
     '<div style="font-size:26px;font-weight:800;margin-bottom:4px;color:var(--primary);letter-spacing:-0.02em;">Illuminated Hearts</div>'+
     '<div style="margin-bottom:26px;color:var(--ink-soft);font-size:14px;font-weight:500;">Hifz Academy Portal Login</div>'+
     '<div class="card" style="width:100%;max-width:360px;">'+
-      '<div class="field"><label>Username</label><input id="login-user" type="text" autocomplete="username" placeholder="e.g. admin or abdullah"></div>'+
+      '<div class="field"><label>Username</label><input id="login-user" type="text" autocomplete="username" placeholder="e.g. hafiz or abdullah"></div>'+
       '<div class="field"><label>Password</label><input id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key===\'Enter\') attemptLogin();"></div>'+
       (APP.loginError? '<div class="banner error">'+esc(APP.loginError)+'</div>' : '')+
       '<button class="btn block" onclick="attemptLogin()">Sign In</button>'+
@@ -1527,7 +1527,7 @@ function renderLoginScreen(){
 function quickLogin(kind, username){
   // Convenience only: fills in the username. A password is always required — there is no sign-in bypass.
   const uEl = document.getElementById('login-user'), pEl = document.getElementById('login-pass');
-  if(uEl){ uEl.value = kind==='admin' ? ((APP.adminSettings&&APP.adminSettings.username)||'admin') : (username||''); }
+  if(uEl){ uEl.value = kind==='admin' ? ((APP.adminSettings&&APP.adminSettings.username)||'hafiz') : (username||''); }
   if(pEl){ pEl.value=''; pEl.focus(); }
 }
 
@@ -2395,7 +2395,7 @@ function renderLoginSettingsView(){
   '<div class="card" style="margin-bottom:18px;">'+
     '<div class="section-title small">A · Admin Login</div>'+
     (admin.isDefault ? '<div class="banner" style="color:var(--error);background:var(--error-bg);border-color:var(--error-border);margin-bottom:12px;">You are still using the default admin password. Please change it now.</div>' : '')+
-    '<div class="field"><label>Username</label><input id="al-user" type="text" autocomplete="off" value="'+esc(admin.username||'admin')+'"></div>'+
+    '<div class="field"><label>Username</label><input id="al-user" type="text" autocomplete="off" value="'+esc(admin.username||'hafiz')+'"></div>'+
     '<div class="field"><label>Current Password</label><input id="al-cur" type="password" autocomplete="current-password" placeholder="Required to save changes"></div>'+
     '<div class="field"><label>New Password</label><input id="al-new" type="password" autocomplete="new-password" placeholder="Leave blank to keep current"></div>'+
     '<div class="field"><label>Confirm New Password</label><input id="al-new2" type="password" autocomplete="new-password" placeholder="Repeat new password"></div>'+
@@ -2432,7 +2432,7 @@ async function saveAdminLogin(){
   if(!cur){ toast('Enter your current password to save changes'); return; }
   if(np && np.length<MIN_STAFF_PW){ toast('New password must be at least '+MIN_STAFF_PW+' characters'); return; }
   if(np && np!==np2){ toast('New passwords do not match'); return; }
-  if(np==='admin123'){ toast('Choose a password other than the default'); return; }
+  if(np==='thilawa'){ toast('Choose a password other than the default'); return; }
   if(u!==admin.username && usernameTaken(u, 'admin')){ toast('That username is already in use'); return; }
   let ok=false;
   try{ ok = await verifyPassword(cur, admin); }catch(e){ toast('Secure hashing unavailable'); return; }
