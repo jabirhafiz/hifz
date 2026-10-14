@@ -1,4 +1,6 @@
-﻿<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+﻿<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head><body>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -379,6 +381,7 @@
     body{background:#fff;}
   }
 </style>
+
 </head>
 <body>
 <div id="app">
@@ -388,7 +391,6 @@
 </div>
 <div id="modal-root"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 /* ============================= DATA / STATE ============================= */
 const STATUS_OPTIONS = ['Recited','Not Recited','Home','Sick','Reported','Not Reported'];
@@ -2893,11 +2895,11 @@ async function printReport(){
   const css = styleEl ? styleEl.textContent : '';
   const title = 'Illuminated Hearts â€” Report '+todayStr();
   const html = '<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'+
-    '<title>'+title+'</title><style>'+css+'\n#main-content{padding:16px;max-width:100%;}body{background:#fff;color:#2B1B18;}.table-scroll{overflow:visible;}@media print{.table-scroll th:first-child,.table-scroll td:first-child{position:static;}}</style></head><body>'+
+    '<title>'+title+'</title><style>'+css+'\n#main-content{padding:16px;max-width:100%;}body{background:#fff;color:#2B1B18;}.table-scroll{overflow:visible;}@media print{.table-scroll th:first-child,.table-scroll td:first-child{position:static;}}</style>
+</head><body>'+
     '<div style="font-family:Arial,sans-serif;font-size:20px;font-weight:600;padding:16px 16px 0;">Illuminated Hearts â€” Hifz Academy</div>'+
     '<div id="main-content">'+clone.innerHTML+'</div>'+
-    '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script>window.addEventListener("load",function(){setTimeout(function(){try{window.print();}catch(e){}},500);});<\/script></body></html>';
+    '<script>window.addEventListener("load",function(){setTimeout(function(){try{window.print();}catch(e){}},500);});<\/script></body></html>';
   let handled = false;
   try{
     if(window.claude && window.claude.use){
