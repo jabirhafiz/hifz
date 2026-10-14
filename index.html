@@ -731,6 +731,8 @@ function makeSupabaseDb(sbClient){
       if(pollingIntervals[tableName]) return;
       pollingIntervals[tableName] = setInterval(async function(){
         if(!colListeners.length) return;
+        // Don't waste background poll if user is on login screen and table is not settings
+        if(!APP.auth && tableName !== 'settings') return;
         const docs = await fetchAll();
         colListeners.slice().forEach(function(fn){ try{ fn({docs:docs}); }catch(e){} });
       }, POLL_MS);
@@ -1477,10 +1479,27 @@ function render(){
   const selStart = active && 'selectionStart' in active ? active.selectionStart : null;
   const selEnd = active && 'selectionEnd' in active ? active.selectionEnd : null;
 
+  // Preserve user input on login screen if user is currently typing
+  const savedUserVal = document.getElementById('login-user') ? document.getElementById('login-user').value : null;
+  const savedPassVal = document.getElementById('login-pass') ? document.getElementById('login-pass').value : null;
+
   if(!APP.auth){
-    document.getElementById('header').innerHTML = '';
-    document.getElementById('bottom-nav').innerHTML = '';
-    document.getElementById('main-content').innerHTML = renderLoginScreen();
+    // If login form is already mounted, don't destroy inputs if user is currently focused or typing
+    const isLoginMounted = !!document.getElementById('login-user');
+    if(!isLoginMounted){
+      document.getElementById('header').innerHTML = '';
+      document.getElementById('bottom-nav').innerHTML = '';
+      document.getElementById('main-content').innerHTML = renderLoginScreen();
+    } else {
+      // Login form is already rendered, only re-render if error changed
+      const errEl = document.querySelector('.login-wrap .banner.error');
+      const curErr = errEl ? errEl.textContent : '';
+      if(curErr !== (APP.loginError || '')){
+        document.getElementById('main-content').innerHTML = renderLoginScreen();
+        if(savedUserVal !== null && document.getElementById('login-user')) document.getElementById('login-user').value = savedUserVal;
+        if(savedPassVal !== null && document.getElementById('login-pass')) document.getElementById('login-pass').value = savedPassVal;
+      }
+    }
   } else {
     renderHeader();
     renderMain();
