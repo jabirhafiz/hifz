@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -6,6 +6,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Illuminated Hearts — Hifz Academy</title>
+  <link rel="icon" type="image/jpeg" href="logo.jpg">
+  <link rel="apple-touch-icon" href="logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -123,10 +125,12 @@
     max-width:720px;margin:0 auto;width:100%;
   }
   .mark{
-    width:46px;height:46px;flex:none;border-radius:50%;
-    background:var(--hero);
+    width:46px;height:46px;flex:none;border-radius:12px;
+    background:var(--surface);
     display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);
+    overflow:hidden;
   }
+  .mark img{width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;}
   .mark svg{width:22px;height:22px;}
   .brand{display:flex;flex-direction:column;line-height:1.2;min-width:0;flex:1;}
   .brand-name{font-weight:800;font-size:15.5px;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1534,7 +1538,7 @@ function renderLoginScreen(){
     }).join('');
   return ''+
   '<div class="login-wrap">'+
-    '<div class="mark" style="width:72px;height:72px;margin-bottom:16px;background:var(--primary);box-shadow:none;">'+iconSvg('star').replace(/currentColor/g,'#fff')+'</div>'+
+    '<div class="mark" style="width:84px;height:84px;margin-bottom:16px;background:transparent;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,0.08);"><img src="logo.jpg" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:20px;"></div>'+
     '<div style="font-size:26px;font-weight:800;margin-bottom:4px;color:var(--primary);letter-spacing:-0.02em;">Illuminated Hearts</div>'+
     '<div style="margin-bottom:26px;color:var(--ink-soft);font-size:14px;font-weight:500;">Hifz Academy Portal Login</div>'+
     '<div class="card" style="width:100%;max-width:360px;">'+
@@ -1572,7 +1576,7 @@ function renderHeader(){
   const bellBtn = (isParent || !can('requests')) ? '' :
     '<button class="icon-top-btn'+(pendingCount?' header-badge-dot':'')+'" onclick="goView(\'requests\')" title="Notifications &amp; Requests">'+iconSvg('bell')+'</button>';
   document.getElementById('header').innerHTML =
-    '<div class="mark">'+iconSvg('star').replace(/currentColor/g,'#fff')+'</div>'+
+    '<div class="mark" style="border-radius:10px;overflow:hidden;"><img src="logo.jpg" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></div>'+
     '<div class="brand">'+
       '<div class="brand-name">Illuminated Hearts</div>'+
       '<div class="brand-sub">'+subtitle+'</div>'+
