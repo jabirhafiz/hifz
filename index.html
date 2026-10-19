@@ -3442,7 +3442,7 @@ function openStudentProfile(studentId){
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
       '<button class="btn small outline" onclick="openStudentFormModal(\''+s.id+'\')">'+iconSvg('edit')+' Edit</button>'+
       '<button class="btn small outline" onclick="openDailyEntryModal(\''+s.id+'\',\''+APP.todayDate+'\')">'+iconSvg('today')+' Today\'s Entry</button>'+
-        '<button class="btn small" style="background:#25D366;color:#fff;border-color:#25D366;" onclick="shareStudentProfileWhatsApp(\''+s.id+'\')">'+iconSvg('whatsapp')+' WhatsApp</button>+'
+        '<button class="btn small" style="background:#25D366;color:#fff;border-color:#25D366;" onclick="shareStudentProfileWhatsApp(\''+s.id+'\')">'+iconSvg('whatsapp')+' WhatsApp</button>'+
       '<button class="btn small outline" onclick="openAchievementModal(\''+s.id+'\')">'+iconSvg('star')+' Star</button>'+
       '<button class="btn small outline" onclick="openTallyModal(\''+s.id+'\')">'+iconSvg('tally')+' Tally</button>'+
       (can('records') ? '<button class="btn small outline" onclick="openEntriesManager(null,\''+s.id+'\')">'+iconSvg('trash')+' Manage Stars &amp; Tallies</button>' : '')+
