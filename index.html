@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Illuminated Hearts — Hifz Academy</title>
@@ -1464,6 +1465,7 @@ function iconSvg(name){
     moon:'<path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linejoin="round"/>',
     trophy:'<path d="M7 4h10v4.5a5 5 0 0 1-10 0Z" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linejoin="round"/><path d="M7 5.5H4.5a2 2 0 0 0 0 4H6M17 5.5h2.5a2 2 0 0 1 0 4H17" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M12 13.5V17M9 20h6M9.5 17h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
     upload:'<path d="M12 16V4.5M7.5 9l4.5-4.5L16.5 9" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+      whatsapp:'<path d="M17.5 14.4c-.3-.2-1.7-.8-2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.4-.5-2.6-1.6-.9-.8-1.6-1.9-1.8-2.2-.2-.3 0-.5.1-.7.1-.1.3-.4.5-.5.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.3 2.4 3.7 5.8 5.1.8.4 1.5.6 2 .8.8.3 1.6.2 2.2.1.7-.1 2.2-.9 2.5-1.8.3-.9.3-1.6.2-1.8-.1-.2-.3-.3-.6-.5z" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.4 5L2 22l5.2-1.4c1.4.8 3.1 1.3 4.8 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.3.9.9-3.2-.2-.3C3.9 14.8 3.5 13.4 3.5 12c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5-3.8 8.2-8.5 8.2z" fill="currentColor"/>',
     user:'<circle cx="12" cy="8.3" r="3.3" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M5 19.5c1-3.6 3.6-5.5 7-5.5s6 1.9 7 5.5" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>'
   };
   return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none">'+(icons[name]||'')+'</svg>';
@@ -1997,10 +1999,12 @@ function renderStudentReport(){
   '</div>'+
   (APP.reportMode==='monthly'? '<div class="field" style="margin-bottom:14px;"><label>Month</label><input type="month" value="'+esc(APP.reportMonth)+'" onchange="APP.reportMonth=this.value;render();"></div>' :
     '<div class="field" style="margin-bottom:14px;"><label>Year</label><input type="number" value="'+esc(APP.reportYear)+'" onchange="APP.reportYear=this.value;render();" style="width:120px;"></div>') +
-  '<div class="no-print" style="display:flex;gap:8px;margin-bottom:14px;">'+
-    '<button class="btn small outline" onclick="printReport()">'+iconSvg('print')+' Print</button>'+
-    '<button class="btn small outline" onclick="exportStudentCsv()">'+iconSvg('download')+' Export CSV</button>'+
-  '</div>'+
+      '<div class="no-print" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
+      '<button class="btn small" onclick="exportReportPdf()" style="background:var(--primary);color:#fff;">'+iconSvg('download')+' Save as PDF</button>'+
+      '<button class="btn small" onclick="shareReportWhatsApp()" style="background:#25D366;color:#fff;border-color:#25D366;">'+iconSvg('whatsapp')+' Send to WhatsApp</button>'+
+      '<button class="btn small outline" onclick="printReport()">'+iconSvg('print')+' Print</button>'+
+      '<button class="btn small outline" onclick="exportStudentCsv()">'+iconSvg('download')+' Export CSV</button>'+
+    '</div>'+
   content;
 }
 
@@ -2121,10 +2125,12 @@ function renderOverviewReport(){
       '<option value="">All</option>'+ batches.map(function(b){ return '<option value="'+esc(b)+'" '+(APP.overviewBatch===b?'selected':'')+'>'+esc(b)+'</option>'; }).join('')+
     '</select></div>'+
   '</div>'+
-  '<div class="no-print" style="display:flex;gap:8px;margin-bottom:14px;">'+
-    '<button class="btn small outline" onclick="printReport()">'+iconSvg('print')+' Print</button>'+
-    '<button class="btn small outline" onclick="exportOverviewCsv()">'+iconSvg('download')+' Export CSV</button>'+
-  '</div>'+
+      '<div class="no-print" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
+      '<button class="btn small" onclick="exportReportPdf()" style="background:var(--primary);color:#fff;">'+iconSvg('download')+' Save as PDF</button>'+
+      '<button class="btn small" onclick="shareReportWhatsApp()" style="background:#25D366;color:#fff;border-color:#25D366;">'+iconSvg('whatsapp')+' Send to WhatsApp</button>'+
+      '<button class="btn small outline" onclick="printReport()">'+iconSvg('print')+' Print</button>'+
+      '<button class="btn small outline" onclick="exportOverviewCsv()">'+iconSvg('download')+' Export CSV</button>'+
+    '</div>'+
   '<div class="table-scroll"><table>'+
     '<tr><th>Student</th><th>Class</th><th>New Learn</th><th>Old Revision</th><th>Last Learn</th><th>Points</th><th>Stars Earned</th><th>Stars Used</th><th>Stars Rem</th><th>Tallies Given</th><th>Tallies Rem</th><th>Competitions</th></tr>'+
     (rows || '<tr><td colspan="12" style="text-align:center;color:var(--ink-faint);">No students</td></tr>')+
@@ -2802,11 +2808,21 @@ function gatherBackupData(){
 /* Offers a generated file through the viewer's download capability. Resolves {ok, code}. Never throws. */
 async function saveDownload(filename, data){
   try{
-    const dl = (window.claude && window.claude.use) ? await window.claude.use('downloads') : null;
-    if(!dl) return { ok:false, code:'unavailable' };
-    await dl.save({ filename:filename, data:data });
+    if(window.claude && window.claude.use){
+      const dl = await window.claude.use('downloads');
+      if(dl){ await dl.save({ filename:filename, data:data }); return { ok:true, code:'saved' }; }
+    }
+  }catch(e){}
+  try{
+    const type = /\.json$/i.test(filename) ? 'application/json' : (/\.csv$/i.test(filename) ? 'text/csv' : 'text/plain');
+    const blob = new Blob([data], { type:type+';charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
     return { ok:true, code:'saved' };
-  }catch(e){ return { ok:false, code:(e && e.code) || 'unavailable', message:(e && e.message) || '' }; }
+  }catch(e){ return { ok:false, code:'unavailable', message:e.message }; }
 }
 let COPY_TEXT_BUF = '', COPY_FILE_NAME = '';
 // Last-resort when the viewer cannot save files: tries a plain browser download on tap, or lets the data be copied into a note/file.
@@ -2943,6 +2959,82 @@ function confirmResetAllData(){
 
 /* ---- Print: window.print() is blocked inside the sandboxed artifact view, so the report is saved as a
    standalone printable page (light theme, auto-opens the print dialog) that opens in the normal browser. ---- */
+/* ---- Direct PDF Generation via html2pdf & WhatsApp Sharing ---- */
+async function exportReportPdf(){
+  const main = document.getElementById('main-content');
+  if(!main){ toast('No report content to export'); return; }
+  const clone = main.cloneNode(true);
+  clone.querySelectorAll('.tab-row, .no-print, button, select, input, .filter-row').forEach(function(n){ n.remove(); });
+  
+  const title = (APP.reportsTab==='student' ? 'Student_Report_' : 'Overview_Report_') + todayStr();
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: title + '.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  toast('Generating PDF...');
+  try {
+    if(window.html2pdf){
+      await window.html2pdf().set(opt).from(clone).save();
+      toast('✅ PDF downloaded successfully');
+    } else {
+      printReport();
+    }
+  } catch(e) {
+    console.error('PDF generation error', e);
+    printReport();
+  }
+}
+
+function shareReportWhatsApp(){
+  let text = '';
+  const dateStr = todayStr();
+  if(APP.reportsTab==='student'){
+    const s = byId(APP.students, APP.reportStudentId);
+    if(!s){ toast('Please select a student'); return; }
+    const isMonthly = APP.reportMode==='monthly';
+    const period = isMonthly ? fmtMonthDisplay(APP.reportMonth) : ('Year ' + APP.reportYear);
+    const stats = computeStats(s.id, isMonthly ? filterMonth(APP.reportMonth) : filterYear(APP.reportYear));
+    const isDoura = s.studyType==='Doura';
+    const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
+    const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' • '+juzLabel(prog)) : juzLabel(prog);
+
+    text = '📖 *Illuminated Hearts - Hifz Academy*\n' +
+           '━━━━━━━━━━━━━━━━━━━━\n' +
+           '👤 *Student:* ' + (s.name||'') + '\n' +
+           '🏷️ *Batch:* ' + (s.batch||'-') + '\n' +
+           '📅 *Period:* ' + period + '\n' +
+           '📍 *Current Progress:* ' + progLabel + '\n' +
+           '━━━━━━━━━━━━━━━━━━━━\n' +
+           '📊 *Performance Summary:*\n' +
+           '• New Learn Pages: *' + stats.newLearnPages + '*\n' +
+           '• Old Revision Pages: *' + stats.oldRevisionPages + '*\n' +
+           '• Last Learn Pages: *' + stats.lastLearnPages + '*\n' +
+           '• Total Sessions: *' + stats.sessionsCount + '*\n' +
+           '⭐ *Stars Remaining:* ' + stats.starsRemaining + '\n' +
+           '🏷️ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
+           '━━━━━━━━━━━━━━━━━━━━\n' +
+           'Generated on ' + dateStr;
+  } else {
+    const list = filteredOverviewStudents();
+    text = '📖 *Illuminated Hearts - Academy Overview*\n' +
+           '📅 Date: ' + dateStr + '\n' +
+           '👥 Total Students: ' + list.length + '\n' +
+           '━━━━━━━━━━━━━━━━━━━━\n';
+    list.slice(0, 15).forEach(function(s, idx){
+      const stats = computeStats(s.id, filterAll());
+      text += (idx+1) + '. *' + s.name + '* (' + (s.batch||'-') + '): ' + stats.newLearnPages + ' learn pages, ⭐' + stats.starsRemaining + '\n';
+    });
+    if(list.length > 15) text += '...and ' + (list.length - 15) + ' more students.\n';
+  }
+
+  const encoded = encodeURIComponent(text);
+  const waUrl = 'https://api.whatsapp.com/send?text=' + encoded;
+  window.open(waUrl, '_blank');
+}
 async function printReport(){
   const main = document.getElementById('main-content');
   if(!main) return;
@@ -3312,6 +3404,33 @@ function studentProfileDetailHtml(studentId, isAdmin){
     }).join('') +'</div>' : '<div class="subtle">No requests yet.</div>');
 }
 
+function shareStudentProfileWhatsApp(studentId){
+  const s = byId(APP.students, studentId);
+  if(!s){ toast('Student not found'); return; }
+  const stats = computeStats(s.id, filterAll());
+  const isDoura = s.studyType==='Doura';
+  const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
+  const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' • '+juzLabel(prog)) : juzLabel(prog);
+
+  const text = '📖 *Illuminated Hearts - Student Progress*\n' +
+               '━━━━━━━━━━━━━━━━━━━━\n' +
+               '👤 *Student:* ' + (s.name||'') + '\n' +
+               '🏷️ *Batch:* ' + (s.batch||'-') + '\n' +
+               '📍 *Current Progress:* ' + progLabel + '\n' +
+               '━━━━━━━━━━━━━━━━━━━━\n' +
+               '📊 *Lifetime Records:*\n' +
+               '• New Learn Pages: *' + stats.newLearnPages + '*\n' +
+               '• Old Revision Pages: *' + stats.oldRevisionPages + '*\n' +
+               '• Last Learn Pages: *' + stats.lastLearnPages + '*\n' +
+               '• Sessions Completed: *' + stats.sessionsCount + '*\n' +
+               '⭐ *Stars Remaining:* ' + stats.starsRemaining + '\n' +
+               '🏷️ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
+               '━━━━━━━━━━━━━━━━━━━━\n' +
+               'Date: ' + todayStr();
+
+  const encoded = encodeURIComponent(text);
+  window.open('https://api.whatsapp.com/send?text=' + encoded, '_blank');
+}
 function openStudentProfile(studentId){
   const s = byId(APP.students, studentId);
   if(!s) return;
@@ -3323,6 +3442,7 @@ function openStudentProfile(studentId){
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
       '<button class="btn small outline" onclick="openStudentFormModal(\''+s.id+'\')">'+iconSvg('edit')+' Edit</button>'+
       '<button class="btn small outline" onclick="openDailyEntryModal(\''+s.id+'\',\''+APP.todayDate+'\')">'+iconSvg('today')+' Today\'s Entry</button>'+
+        '<button class="btn small" style="background:#25D366;color:#fff;border-color:#25D366;" onclick="shareStudentProfileWhatsApp(\''+s.id+'\')">'+iconSvg('whatsapp')+' WhatsApp</button>+'
       '<button class="btn small outline" onclick="openAchievementModal(\''+s.id+'\')">'+iconSvg('star')+' Star</button>'+
       '<button class="btn small outline" onclick="openTallyModal(\''+s.id+'\')">'+iconSvg('tally')+' Tally</button>'+
       (can('records') ? '<button class="btn small outline" onclick="openEntriesManager(null,\''+s.id+'\')">'+iconSvg('trash')+' Manage Stars &amp; Tallies</button>' : '')+
