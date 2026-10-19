@@ -715,40 +715,39 @@ function makeSupabaseDb(sbClient){
   const pollingIntervals = {};
   const POLL_MS = 3000;
 
-  function col(tableName){
+  function col(colName){
     const docListeners = {};
     const colListeners = [];
 
     async function fetchAll(){
-      const { data, error } = await sbClient.from(tableName).select('*');
-      if(error){ console.error('supabase fetchAll', tableName, error); return []; }
+      const { data, error } = await sbClient.from('academy_data').select('id, data').eq('collection', colName);
+      if(error){ console.error('supabase fetchAll', colName, error); return []; }
       return (data||[]).map(function(row){
-        const d = Object.assign({}, row);
-        const id = d.id; delete d.id;
-        return { id: id, exists:true, data:function(){ return d; } };
+        const d = (typeof row.data === 'object' && row.data !== null) ? row.data : (JSON.parse(row.data || '{}'));
+        return { id: row.id, exists:true, data:function(){ return d; } };
       });
     }
 
     async function fetchDoc(id){
-      const { data, error } = await sbClient.from(tableName).select('*').eq('id', id).maybeSingle();
-      if(error){ console.error('supabase fetchDoc', tableName, id, error); return { id:id, exists:false, data:function(){ return undefined; } }; }
+      const { data, error } = await sbClient.from('academy_data').select('id, data').eq('collection', colName).eq('id', id).maybeSingle();
+      if(error){ console.error('supabase fetchDoc', colName, id, error); return { id:id, exists:false, data:function(){ return undefined; } }; }
       if(!data) return { id:id, exists:false, data:function(){ return undefined; } };
-      const d = Object.assign({}, data); delete d.id;
+      const d = (typeof data.data === 'object' && data.data !== null) ? data.data : (JSON.parse(data.data || '{}'));
       return { id:id, exists:true, data:function(){ return d; } };
     }
 
     function startColPolling(){
-      if(pollingIntervals[tableName]) return;
-      pollingIntervals[tableName] = setInterval(async function(){
+      if(pollingIntervals[colName]) return;
+      pollingIntervals[colName] = setInterval(async function(){
         if(!colListeners.length) return;
-        if(!APP.auth && tableName !== 'settings') return;
+        if(!APP.auth && colName !== 'settings') return;
         const docs = await fetchAll();
         colListeners.slice().forEach(function(fn){ try{ fn({docs:docs}); }catch(e){} });
       }, POLL_MS);
     }
 
     function startDocPolling(id){
-      const key = tableName+'/'+id;
+      const key = colName+'/'+id;
       if(pollingIntervals[key]) return;
       pollingIntervals[key] = setInterval(async function(){
         if(!(docListeners[id]&&docListeners[id].length)) return;
@@ -774,19 +773,23 @@ function makeSupabaseDb(sbClient){
         id: id,
         async get(){ return await fetchDoc(id); },
         async set(d){
-          const row = Object.assign({ id:id }, d);
-          const { error } = await sbClient.from(tableName).upsert(row, { onConflict:'id' });
-          if(error) console.error('supabase set', tableName, id, error);
+          const row = { collection: colName, id: id, data: d, updated_at: new Date().toISOString() };
+          const { error } = await sbClient.from('academy_data').upsert(row, { onConflict:'collection,id' });
+          if(error) console.error('supabase set', colName, id, error);
           await notifyAll(); await notifyDoc(id);
         },
         async update(d){
-          const { error } = await sbClient.from(tableName).update(d).eq('id', id);
-          if(error){ console.error('supabase update', tableName, id, error); return; }
+          const snap = await fetchDoc(id);
+          const curData = snap.exists ? (snap.data() || {}) : {};
+          const merged = Object.assign({}, curData, d);
+          const row = { collection: colName, id: id, data: merged, updated_at: new Date().toISOString() };
+          const { error } = await sbClient.from('academy_data').upsert(row, { onConflict:'collection,id' });
+          if(error){ console.error('supabase update', colName, id, error); return; }
           await notifyAll(); await notifyDoc(id);
         },
         async delete(){
-          const { error } = await sbClient.from(tableName).delete().eq('id', id);
-          if(error) console.error('supabase delete', tableName, id, error);
+          const { error } = await sbClient.from('academy_data').delete().eq('collection', colName).eq('id', id);
+          if(error) console.error('supabase delete', colName, id, error);
           await notifyAll(); await notifyDoc(id);
         },
         onSnapshot(fn){
@@ -802,9 +805,9 @@ function makeSupabaseDb(sbClient){
       doc: doc,
       async add(d){
         const id = 'r'+Date.now()+'_'+Math.random().toString(36).slice(2);
-        const row = Object.assign({ id:id }, d);
-        const { error } = await sbClient.from(tableName).insert(row);
-        if(error) console.error('supabase add', tableName, error);
+        const row = { collection: colName, id: id, data: d, updated_at: new Date().toISOString() };
+        const { error } = await sbClient.from('academy_data').insert(row);
+        if(error) console.error('supabase add', colName, error);
         await notifyAll();
         return { id: id };
       },
