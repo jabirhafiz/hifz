@@ -461,6 +461,7 @@ const APP = {
   overviewBatch:'',
   competitionsMonth: currentMonthStr(),
   parentReportMode: 'monthly',
+  parentReportWeek: currentWeekStr(),
   parentReportMonth: currentMonthStr(),
   parentReportYear: currentYearStr(),
   loginError: '',
@@ -2733,10 +2734,13 @@ function renderParentProfile(){
   '</div>'+
   '<div class="section-title small">Performance Reports</div>'+
   '<div class="seg" style="margin-bottom:14px;">'+
-  if(APP.parentReportMode==='weekly'){ const stats = computeStats(sid, filterWeek(APP.parentReportWeek)); reportContent = studentStatBlock(s, stats, fmtWeekDisplay(APP.parentReportWeek), filterWeek(APP.parentReportWeek), true); } else if(APP.parentReportMode==='monthly'){
+    '<button class="'+(APP.parentReportMode==='weekly'?'active':'')+'" onclick="APP.parentReportMode=\'weekly\';render();">Weekly</button>'+
+    '<button class="'+(APP.parentReportMode==='monthly'?'active':'')+'" onclick="APP.parentReportMode=\'monthly\';render();">Monthly</button>'+
     '<button class="'+(APP.parentReportMode==='yearly'?'active':'')+'" onclick="APP.parentReportMode=\'yearly\';render();">Yearly</button>'+
   '</div>'+
-  if(APP.parentReportMode==='weekly'){ const stats = computeStats(sid, filterWeek(APP.parentReportWeek)); reportContent = studentStatBlock(s, stats, fmtWeekDisplay(APP.parentReportWeek), filterWeek(APP.parentReportWeek), true); } else if(APP.parentReportMode==='monthly'){
+  (APP.parentReportMode==='weekly' ?
+    '<div class="field" style="margin-bottom:14px;"><label>Week</label><input type="week" value="'+esc(APP.parentReportWeek)+'" onchange="APP.parentReportWeek=this.value;render();"><div class="subtle" style="margin-top:4px;">'+esc(fmtWeekDisplay(APP.parentReportWeek))+'</div></div>' :
+   APP.parentReportMode==='monthly' ?
     '<div class="field" style="margin-bottom:14px;"><label>Month</label><input type="month" value="'+esc(APP.parentReportMonth)+'" onchange="APP.parentReportMonth=this.value;render();"></div>' :
     '<div class="field" style="margin-bottom:14px;"><label>Year</label><input type="number" value="'+esc(APP.parentReportYear)+'" onchange="APP.parentReportYear=this.value;render();" style="width:120px;"></div>')+
   reportContent;
