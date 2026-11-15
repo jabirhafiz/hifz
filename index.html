@@ -327,9 +327,27 @@
   table{width:100%;border-collapse:collapse;font-size:12.5px;}
   th,td{padding:8px 9px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
   th{color:var(--ink-soft);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.02em;}
-  .table-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-m);}
-  .table-scroll table{margin:0;}
-  .table-scroll th:first-child, .table-scroll td:first-child{position:sticky;left:0;background:var(--surface);}
+  .table-scroll{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    touch-action:pan-x pan-y;
+    border:1px solid var(--border);
+    border-radius:var(--radius-m);
+  }
+  .table-scroll table{margin:0;min-width:480px;}
+  .table-scroll th:first-child, .table-scroll td:first-child{
+    position:sticky;
+    left:0;
+    background:var(--surface);
+    z-index:2;
+    box-shadow:2px 0 4px rgba(0,0,0,0.06);
+  }
+  @media (max-width:600px){
+    table{font-size:11.5px;}
+    th,td{padding:6px 7px;}
+    .table-scroll table{min-width:440px;}
+  }
 
   .empty{text-align:center;padding:36px 12px;color:var(--ink-faint);}
   .empty svg{width:34px;height:34px;margin-bottom:10px;opacity:0.6;}
@@ -735,13 +753,20 @@ const LOADED = {};
 let USERS_LOADED_ONCE = false;
 APP.juzCompletions = [];
 APP.auditLog = [];
+const collectionFingerprints = {};
 function subscribeCollection(name, arr){
   dbc(name).onSnapshot(function(snap){
-    arr.length = 0;
-    snap.docs.forEach(function(d){
+    const newDocs = snap.docs.map(function(d){
       const data = d.data() || {};
-      arr.push(Object.assign({id:d.id}, data));
+      return Object.assign({id:d.id}, data);
     });
+    const fp = JSON.stringify(newDocs);
+    if(LOADED[name] && collectionFingerprints[name] === fp){
+      return; // Data has not changed - do not reset arrays or DOM scroll
+    }
+    collectionFingerprints[name] = fp;
+    arr.length = 0;
+    newDocs.forEach(function(d){ arr.push(d); });
     LOADED[name] = true;
     if(name==='students'){ STUDENTS_LOADED_ONCE = true; }
     if(name==='users'){ USERS_LOADED_ONCE = true; }
@@ -772,7 +797,7 @@ const SUPABASE_KEY = 'sb_publishable_Tbh9s5K7T4IR0ncPlm0KCg_rmccReAU';
 
 function makeSupabaseDb(sbClient){
   const pollingIntervals = {};
-  const POLL_MS = 3000;
+  const POLL_MS = 10000;
 
   function col(colName){
     const docListeners = {};
@@ -1551,6 +1576,12 @@ function render(){
   const selStart = active && 'selectionStart' in active ? active.selectionStart : null;
   const selEnd = active && 'selectionEnd' in active ? active.selectionEnd : null;
 
+  // Save horizontal scroll positions of all table-scroll containers before re-rendering
+  const savedScrolls = [];
+  document.querySelectorAll('.table-scroll').forEach(function(el){
+    savedScrolls.push(el.scrollLeft);
+  });
+
   const appEl = document.getElementById('app');
   if(appEl) appEl.classList.toggle('logged-out', !APP.auth && !APP.pendingAuth);
   if(!APP.auth){
@@ -1569,6 +1600,13 @@ function render(){
     renderNav();
     maybeRunMigrations();
   }
+
+  // Restore horizontal scroll positions so swipe/slide never resets unexpectedly
+  document.querySelectorAll('.table-scroll').forEach(function(el, i){
+    if(savedScrolls[i] !== undefined && savedScrolls[i] > 0){
+      el.scrollLeft = savedScrolls[i];
+    }
+  });
 
   if(activeId){
     const el = document.getElementById(activeId);
@@ -2122,7 +2160,7 @@ function yearlyReportTable(s, yearOverride){
   return ''+
   '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+' â€¢ '+esc(year)+' yearly report</div></div>'+
   '<div class="table-scroll" style="margin-bottom:14px;"><table>'+
-    '<tr><th>Month</th><th>New Learn</th><th>Remaining Tally</th><th>Stars</th><th>Performance Points</th></tr>'+
+    '<tr><th>Month</th><th>New Learn</th><th>Remaining<br>Tally</th><th>Stars</th><th>Performance<br>Points</th></tr>'+
     rows+
   '</table></div>'+
   '<div class="card">'+
@@ -2186,7 +2224,7 @@ function renderOverviewReport(){
     '<button class="btn small outline" onclick="exportOverviewCsv()">'+iconSvg('download')+' Export CSV</button>'+
   '</div>'+
   '<div class="table-scroll"><table>'+
-    '<tr><th>Student</th><th>Class</th><th>New Learn</th><th>Remaining Tally</th><th>Stars</th><th>Performance Points</th></tr>'+
+    '<tr><th>Student</th><th>Class</th><th>New Learn</th><th>Remaining<br>Tally</th><th>Stars</th><th>Performance<br>Points</th></tr>'+
     (rows || '<tr><td colspan="6" style="text-align:center;color:var(--ink-faint);">No students</td></tr>')+
   '</table></div>';
 }
