@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -195,12 +195,18 @@
   .stat-card.s-recited{--dot:var(--success);} .stat-card.s-notrecited{--dot:var(--error);} .stat-card.s-home{--dot:var(--home);}
   .stat-card.s-sick{--dot:var(--warn);} .stat-card.s-reported{--dot:var(--primary-text);} .stat-card.s-notreported{--dot:var(--neutral);}
   .stat-card.s-pending{--dot:var(--accent);}
-  .dash-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
-  .dstat{background:var(--surface);border:1.5px solid var(--border);border-radius:24px;padding:20px 18px;min-height:112px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;min-width:0;}
-  .dstat .stat-num{font-size:38px;font-weight:800;color:var(--ink);}
-  .dstat .stat-label{margin-top:0;font-size:15px;font-weight:500;color:var(--ink-soft);}
-  .dstat.primary{background:#DF5A49;border-color:#DF5A49;}
+  .dash-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .dstat{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:12px 10px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;text-align:center;box-shadow:0 1px 4px rgba(120,50,40,0.03);}
+  .dstat .stat-num{font-size:30px;font-weight:800;color:var(--ink);text-align:center;width:100%;line-height:1;}
+  .dstat .stat-label{margin-top:0;font-size:13.5px;font-weight:600;color:var(--ink-soft);text-align:center;width:100%;justify-content:center;}
+  .dstat.primary{background:#DF5A49;border-color:#DF5A49;box-shadow:0 4px 14px rgba(218,90,71,0.25);}
   .dstat.primary .stat-num,.dstat.primary .stat-label{color:#fff;}
+  @media (max-width:360px){.dash-stats{gap:8px;}.dstat{padding:10px 8px;min-height:68px;border-radius:16px;}.dstat .stat-num{font-size:26px;}.dstat .stat-label{font-size:12px;}}
+
+
+
+
+
   @media (max-width:360px){.dash-stats{gap:8px;}.dstat{padding:16px 14px;min-height:96px;border-radius:20px;}.dstat .stat-num{font-size:32px;}.dstat .stat-label{font-size:13px;}}
   .split-card{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .split-half{min-width:0;padding:18px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;min-height:120px;border-radius:var(--radius-m);box-shadow:var(--shadow);}
@@ -213,10 +219,10 @@
   .split-half .stat-num{font-size:40px;}
   .split-half.left .stat-num{color:var(--white);}
   .split-half.right .stat-num{color:var(--white);}
-  .greet{margin:4px 0 14px 0;display:block;min-width:0;white-space:nowrap;font-size:22px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;}
+  .greet{margin:2px 0 2px 0;display:block;min-width:0;white-space:nowrap;font-size:22px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;}
   .greet-hi{font-size:inherit;font-weight:300;color:var(--ink-soft);letter-spacing:-0.02em;flex:none;}
   .greet-name{font-size:inherit;font-weight:800;letter-spacing:-0.02em;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-  .greet-date{font-size:13px;font-weight:600;color:var(--ink-soft);margin:-6px 0 14px;}
+  .greet-date{font-size:13px;font-weight:600;color:var(--ink-soft);margin:0 0 12px;}
   .today-hl{background:var(--soft);border:1px solid var(--primary);border-radius:10px;padding:8px 10px !important;}
   .today-tag{display:inline-block;background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;}
   .st-recited{color:var(--primary);font-weight:800;}
@@ -422,42 +428,95 @@
   .dash-fab-wrapper *{pointer-events:auto;}
   .dash-fab-menu{
     display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:12px;
-    opacity:0;visibility:hidden;transform:translateY(16px) scale(0.92);
+    opacity:0;visibility:hidden;transform:translateY(16px) scale(0.94);
     transition:opacity 0.22s cubic-bezier(0.16,1,0.3,1),transform 0.22s cubic-bezier(0.16,1,0.3,1),visibility 0.22s;
   }
   .dash-fab-wrapper.open .dash-fab-menu{
     opacity:1;visibility:visible;transform:translateY(0) scale(1);
   }
   .dash-fab-item{
-    display:flex;align-items:center;gap:10px;background:none;border:none;cursor:pointer;padding:0;outline:none;
+    display:inline-flex;align-items:center;gap:10px;
+    background:#FFFFFF;color:var(--ink);
+    padding:8px 18px 8px 10px;
+    border-radius:999px;
+    border:1.5px solid var(--border);
+    box-shadow:0 8px 24px rgba(43,27,24,0.16);
+    cursor:pointer;outline:none;
+    font-family:inherit;font-size:14px;font-weight:700;
+    white-space:nowrap;
+    transition:transform 0.15s ease,background 0.15s ease,box-shadow 0.15s ease,border-color 0.15s ease;
+    user-select:none;-webkit-tap-highlight-color:transparent;
   }
-  .dash-fab-label{
-    background:var(--white);color:var(--ink);font-family:inherit;font-size:13.5px;font-weight:700;
-    padding:7px 14px;border-radius:12px;box-shadow:0 4px 16px rgba(43,27,24,0.14);border:1px solid var(--border);white-space:nowrap;
+  .dash-fab-item:active{
+    transform:scale(0.96);background:var(--primary-tint);
   }
-  .dash-fab-circle{
-    width:46px;height:46px;border-radius:50%;background:var(--surface);color:var(--primary);
-    border:2px solid var(--primary-tint);display:flex;align-items:center;justify-content:center;
-    box-shadow:0 4px 14px rgba(43,27,24,0.12);transition:transform 0.15s ease,background 0.15s ease,color 0.15s ease;
+  .dash-fab-ic{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--primary-tint);color:var(--primary);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:background 0.15s ease,color 0.15s ease;
   }
-  .dash-fab-circle svg{width:22px;height:22px;}
-  .dash-fab-item:hover .dash-fab-circle,
-  .dash-fab-item:active .dash-fab-circle{
-    background:var(--primary);color:var(--white);border-color:var(--primary);transform:scale(1.06);
+  .dash-fab-ic svg{width:18px;height:18px;}
+  .dash-fab-text{
+    font-size:13.5px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;
   }
   .dash-fab-main-btn{
     width:58px;height:58px;border-radius:50%;background:var(--primary);color:var(--white);border:none;
-    box-shadow:0 6px 22px rgba(218,90,71,0.42);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 22px rgba(218,90,71,0.45);display:flex;align-items:center;justify-content:center;
     cursor:pointer;outline:none;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),background 0.2s ease,box-shadow 0.2s ease;
+    -webkit-tap-highlight-color:transparent;
   }
   .dash-fab-main-btn:hover{background:var(--primary-dark);box-shadow:0 8px 26px rgba(218,90,71,0.55);}
   .dash-fab-main-btn:active{transform:scale(0.92);}
   .dash-fab-main-btn svg{width:28px;height:28px;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);}
   .dash-fab-wrapper.open .dash-fab-main-btn svg{transform:rotate(45deg);}
   .dash-fab-backdrop{
-    position:fixed;inset:0;background:rgba(0,0,0,0.22);z-index:98;display:none;backdrop-filter:blur(2px);
+    position:fixed;inset:0;background:rgba(43,27,24,0.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:98;display:none;
   }
   .dash-fab-backdrop.active{display:block;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </style>
 </head>
 <body>
@@ -2049,16 +2108,16 @@ function renderDashboard(){
     '<div class="dash-fab-wrapper" id="dash-fab-wrap">'+
       '<div class="dash-fab-menu">'+
         '<button class="dash-fab-item" onclick="toggleDashFab(false);openPickStudentModal(\'daily\');">'+
-          '<span class="dash-fab-label">Today\'s Record</span>'+
-          '<div class="dash-fab-circle">'+iconSvg('today')+'</div>'+
+          '<span class="dash-fab-ic">'+iconSvg('today')+'</span>'+
+          '<span class="dash-fab-text">Today\'s Record</span>'+
         '</button>'+
         '<button class="dash-fab-item" onclick="toggleDashFab(false);openPickStudentModal(\'achievement\');">'+
-          '<span class="dash-fab-label">Stars</span>'+
-          '<div class="dash-fab-circle">'+iconSvg('star')+'</div>'+
+          '<span class="dash-fab-ic">'+iconSvg('star')+'</span>'+
+          '<span class="dash-fab-text">Stars</span>'+
         '</button>'+
         '<button class="dash-fab-item" onclick="toggleDashFab(false);openPickStudentModal(\'tally\');">'+
-          '<span class="dash-fab-label">Tallies</span>'+
-          '<div class="dash-fab-circle">'+iconSvg('tally')+'</div>'+
+          '<span class="dash-fab-ic">'+iconSvg('tally')+'</span>'+
+          '<span class="dash-fab-text">Tallies</span>'+
         '</button>'+
       '</div>'+
       '<button class="dash-fab-main-btn" onclick="toggleDashFab()" aria-label="Quick Actions">'+
@@ -2066,6 +2125,25 @@ function renderDashboard(){
       '</button>'+
     '</div>'+
     '<div class="dash-fab-backdrop" id="dash-fab-backdrop" onclick="toggleDashFab(false);"></div>'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   ) : '');
 }
 
@@ -2123,7 +2201,7 @@ const progLabel = isDoura ? ('Doura '+(prog.completed||0)+'  \u00B7  '+esc(juzLa
     '</div>'+
     '<div class="row-end">'+
       '<div class="badge stars" title="Stars Earned in '+fmtMonthDisplay(monthStr)+'">'+iconSvg('star')+' '+stats.totalStars+'</div><br/>'+
-      '<div class="badge tallies" style="margin-top:5px;" title="Total Tallies in '+fmtMonthDisplay(monthStr)+'">'+stats.talliesGiven+' tallies</div>'+
+      '<div class="badge tallies" style="margin-top:5px;" title="Tallies in '+fmtMonthDisplay(monthStr)+'">'+stats.talliesGiven+' tallies</div>'+
     '</div>'+
   '</div>';
 }
@@ -2627,9 +2705,9 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     '</div>'+
     '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Performance Summary</div>'+
     '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(3,1fr);">'+
-      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Perf. Points</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Score</div></div>'+
       '<div class="stat-mini"><div class="n">\u2605 '+stats.totalStars+'</div><div class="l">2. Total Stars Earned</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Total Tallies</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Tallies</div></div>'+
       '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">4. Days Recited ('+attendanceRate+'%)</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.newLearnPages+' pg</div><div class="l">5. New Learn ('+stats.newLearnScore+' pts)</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.oldRevisionPages+' pg</div><div class="l">6. Revision ('+stats.oldRevisionScore+' pts)</div></div>'+
@@ -2678,15 +2756,15 @@ function yearlyReportTable(s, yearOverride){
   return ''+
 '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+'  \u00B7  '+esc(year)+' yearly report</div></div>'+
   '<div class="table-scroll" style="margin-bottom:14px;"><table>'+
-    '<tr><th>Month</th><th>New Learn</th><th>Total Tallies</th><th>Stars Earned</th><th>Performance Points</th></tr>'+
+    '<tr><th>Month</th><th>New Learn</th><th>Tallies</th><th>Stars Earned</th><th>Score</th></tr>'+
     rows+
   '</table></div>'+
   '<div class="card">'+
     '<div class="section-title small">Year Totals ('+esc(year)+')</div>'+
     '<div class="kv"><span class="k">New Learn Pages</span><span class="v"><b>'+yearStats.newLearnPages+'</b></span></div>'+
-    '<div class="kv"><span class="k">Total Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
+    '<div class="kv"><span class="k">Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
     '<div class="kv"><span class="k">Stars Earned</span><span class="v"><b>\u2605 '+yearStats.totalStars+'</b></span></div>'+
-    '<div class="kv"><span class="k">Performance Points</span><span class="v"><b>'+yearStats.points+'</b></span></div>'+
+    '<div class="kv"><span class="k">Score</span><span class="v"><b>'+yearStats.points+'</b></span></div>'+
   '</div>';
 }
 
@@ -2769,7 +2847,7 @@ function renderOverviewReport(){
   '</div>'+
 '<div class="subtle" style="margin-bottom:8px;">'+list.length+' students in '+periodLabel+' ('+periodDays+' working days)  \u00B7  Click any student row to view full daily details</div>'+
   '<div class="table-scroll"><table>'+
-    '<thead><tr><th>Student</th><th>Class</th><th>Points</th><th>Stars Earned</th><th>Total Tallies</th><th>New Learn</th><th>Revision</th><th>Attendance</th></tr></thead>'+
+    '<thead><tr><th>Student</th><th>Class</th><th>Score</th><th>Stars Earned</th><th>Tallies</th><th>New Learn</th><th>Revision</th><th>Attendance</th></tr></thead>'+
     '<tbody>'+(rows || '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
   '</table></div>';
 }
@@ -3684,9 +3762,9 @@ function shareReportWhatsApp(){
            'ðŸ“… *Period:* ' + period + '\n' +
            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
            'ðŸ“Š *Performance Summary:*\n' +
-           '\u2022 Performance Points: *' + stats.points + '*\n' +
+           '\u2022 Score: *' + stats.points + '*\n' +
            '\u2022 Total Stars Earned: *' + stats.totalStars + '*\n' +
-           '\u2022 Total Tallies: *' + stats.talliesGiven + '*\n' +
+           '\u2022 Tallies: *' + stats.talliesGiven + '*\n' +
            '\u2022 New Learn: *' + stats.newLearnPages + ' pages (' + stats.newLearnScore + ' pts)*\n' +
            
            '\u2022 Revision: *' + stats.oldRevisionPages + ' pages (' + stats.oldRevisionScore + ' pts)*\n' +
@@ -3792,9 +3870,9 @@ function exportStudentCsv(){
     ['Student', s.name],
     ['Batch', s.batch||''],
     ['Period', period],
-    ['Performance Points', stats.points],
+    ['Score', stats.points],
     ['Total Stars Earned', stats.totalStars],
-    ['Total Tallies', stats.talliesGiven],
+    ['Tallies', stats.talliesGiven],
     ['New Learn Pages', stats.newLearnPages],
 
     ['Old Revision Pages', stats.oldRevisionPages],
@@ -3841,7 +3919,7 @@ function exportOverviewCsv(){
     periodDays = getWorkingDatesInRange(period+'-01', period+'-'+String(lastDay).padStart(2,'0')).length;
   }
   const list = filteredOverviewStudents();
-  const rows = [['Student','Class','Performance Points','Total Stars Earned','Total Tallies','New Learn Pages','Old Revision Pages','Days Recited','Total Days']];
+  const rows = [['Student','Class','Score','Total Stars Earned','Tallies','New Learn Pages','Old Revision Pages','Days Recited','Total Days']];
   list.forEach(function(s){
     const st = computeStats(s.id, filterFn);
     rows.push([
@@ -4129,7 +4207,7 @@ function studentProfileDetailHtml(studentId, isAdmin){
       '<div class="stat-mini"><div class="n">'+stats.starsRemaining+'</div><div class="l">Stars Remaining</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Tallies Remaining</div></div>'+
     '</div>'+
-    '<div class="kv"><span class="k">Performance Points</span><span class="v">'+stats.points+'</span></div>'+
+    '<div class="kv"><span class="k">Score</span><span class="v">'+stats.points+'</span></div>'+
     '<div class="kv"><span class="k">New Learn / Old Revision Pages</span><span class="v">'+stats.newLearnPages+' / '+stats.oldRevisionPages+'</span></div>'+
     
     '<div class="kv"><span class="k">Total Recitation Sessions</span><span class="v">'+stats.sessionsCount+'</span></div>'+
