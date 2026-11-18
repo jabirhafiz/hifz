@@ -2337,9 +2337,11 @@ function openDayReportModal(studentId, date){
 }
 
 function renderStudentReport(){
-  const students = VS().slice().sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
-  if(!APP.reportStudentId && students.length) APP.reportStudentId = students[0].id;
-  const s = byId(APP.students, APP.reportStudentId);
+  const students = VS().filter(function(st){ return st.active !== false; }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+  if((!APP.reportStudentId || !students.some(function(st){ return st.id === APP.reportStudentId; })) && students.length){
+    APP.reportStudentId = students[0].id;
+  }
+  const s = byId(students, APP.reportStudentId);
 
   let content = '<div class="empty">'+iconSvg('people')+'<p>Add a student to see reports.</p></div>';
   if(s){
@@ -3564,7 +3566,7 @@ function shareReportWhatsApp(){
   const dateStr = todayStr();
   if(APP.reportsTab==='student'){
     const s = byId(APP.students, APP.reportStudentId);
-    if(!s){ toast('Please select a student'); return; }
+    if(!s || s.active === false){ toast('Please select an active student'); return; }
     let period = '', filterFn = null;
     if(APP.reportMode==='range'){
       const from = APP.reportFromDate || currentMonthStartStr();
@@ -3669,7 +3671,7 @@ async function downloadCsv(filename, rows){
 }
 function exportStudentCsv(){
   const s = byId(APP.students, APP.reportStudentId);
-  if(!s) return;
+  if(!s || s.active === false){ toast('Please select an active student'); return; }
   let period = '', filterFn = null, dates = [];
   if(APP.reportMode==='range'){
     const from = APP.reportFromDate || currentMonthStartStr();
