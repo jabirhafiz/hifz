@@ -305,6 +305,9 @@
   .badge.st-sick{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border);}
   .badge.st-reported{background:var(--primary-tint);color:var(--primary-text);border:1px solid var(--line-strong);}
   .badge.st-notreported{background:var(--neutral-bg);color:var(--neutral);border:1px dashed var(--ink-faint);}
+  .badge.st-unrecorded{background:var(--neutral-bg);color:var(--neutral);border:1px solid var(--border);}
+  .badge.st-absent{background:var(--error-bg);color:var(--error);border:1px solid var(--error-border);}
+  .badge.st-leave{background:var(--home-bg);color:var(--home);border:1px solid transparent;}
   .banner.error{background:var(--error-bg);border-color:var(--error-border);color:var(--error);}
   .banner.success{background:var(--success-bg);border-color:var(--success-border);color:var(--success);}
   .icon-top-btn{background:var(--surface);border:none;color:var(--ink);cursor:pointer;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;box-shadow:var(--shadow);}
@@ -423,13 +426,24 @@
 
 <script>
 /* ============================= DATA / STATE ============================= */
-const STATUS_OPTIONS = ['Recited','Not Recited','Home','Sick','Reported','Not Reported'];
-const LEAVE_REASONS = ['Home','Sick','Reported'];
+const STATUS_OPTIONS = ['Recited','Not Recited','Home','Sick','Reported','Not Reported','Absent','Leave'];
+const LEAVE_REASONS = ['Home','Sick','Reported','Leave'];
 // 'Out Program' was renamed 'Reported'. Old records keep working: every read goes through normStatus().
-const LEGACY_STATUS = { 'Out Program':'Reported' };
+const LEGACY_STATUS = { 'Out Program':'Reported', 'Absent':'Not Recited', 'Leave':'Home' };
 function normStatus(s){ return LEGACY_STATUS[s] || s; }
-const STATUS_CLASS = { 'Recited':'st-recited', 'Not Recited':'st-notrecited', 'Home':'st-home', 'Sick':'st-sick', 'Reported':'st-reported', 'Not Reported':'st-notreported' };
+const STATUS_CLASS = {
+  'Recited':'st-recited',
+  'Not Recited':'st-notrecited',
+  'Home':'st-home',
+  'Sick':'st-sick',
+  'Reported':'st-reported',
+  'Not Reported':'st-notreported',
+  'Absent':'st-absent',
+  'Leave':'st-leave',
+  'Unrecorded':'st-unrecorded'
+};
 function statusBadge(status){
+  if(!status || status==='Unrecorded') return '<span class="badge st-unrecorded">Unrecorded</span>';
   const n = normStatus(status);
   return '<span class="badge '+(STATUS_CLASS[n]||'done')+'">'+esc(n)+'</span>';
 }
@@ -465,23 +479,30 @@ const APP = {
   studentSearch:'',
   studentBatchFilter:'',
   todayDate: todayStr(),
-  reportsTab:'calendar',
+  reportsTab:'student',
   calendarDate: todayStr(),
   reportStudentId:'',
-  reportMode:'monthly',
-  reportWeek: currentWeekStr(),
+  reportMode:'range',
+  reportFromDate: currentMonthStartStr(),
+  reportToDate: todayStr(),
   reportMonth: currentMonthStr(),
   reportYear: currentYearStr(),
-  overviewMode:'monthly',
-  overviewWeek: currentWeekStr(),
+  reportWeek: currentWeekStr(),
+  overviewMode:'range',
+  overviewFromDate: currentMonthStartStr(),
+  overviewToDate: todayStr(),
   overviewMonth: currentMonthStr(),
   overviewYear: currentYearStr(),
+  overviewWeek: currentWeekStr(),
   overviewBatch:'',
+  studentsMonth: currentMonthStr(),
   competitionsMonth: currentMonthStr(),
-  parentReportMode: 'monthly',
-  parentReportWeek: currentWeekStr(),
+  parentReportMode: 'range',
+  parentReportFromDate: currentMonthStartStr(),
+  parentReportToDate: todayStr(),
   parentReportMonth: currentMonthStr(),
   parentReportYear: currentYearStr(),
+  parentReportWeek: currentWeekStr(),
   loginError: '',
 };
 
@@ -493,6 +514,105 @@ function todayStr(){
 }
 function currentMonthStr(){ return todayStr().slice(0,7); }
 function currentYearStr(){ return todayStr().slice(0,4); }
+function currentMonthStartStr(){ return todayStr().slice(0,7) + '-01'; }
+function filterRange(from, to){
+  if(!from && !to) return function(){ return true; };
+  const s = (from && to && from > to) ? to : (from || to);
+  const e = (from && to && from > to) ? from : (to || from);
+  return function(d){
+    if(typeof d !== 'string') return false;
+    if(s && d < s) return false;
+    if(e && d > e) return false;
+    return true;
+  };
+}
+function getDatesInRange(from, to){
+  if(!from && !to) return [todayStr()];
+  const s = (from && to && from > to) ? to : (from || to || todayStr());
+  const e = (from && to && from > to) ? from : (to || from || todayStr());
+  const dates = [];
+  const parts = s.split('-');
+  let cur = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+  const endParts = e.split('-');
+  const end = new Date(parseInt(endParts[0],10), parseInt(endParts[1],10)-1, parseInt(endParts[2],10));
+  let safety = 0;
+  while(cur <= end && safety < 366){
+    dates.push(toIsoDate(cur));
+    cur.setDate(cur.getDate() + 1);
+    safety++;
+  }
+  return dates;
+}
+function fmtRangeDisplay(from, to){
+  if(!from && !to) return 'All time';
+  if(from && !to) return 'From ' + fmtDateDisplay(from);
+  if(!from && to) return 'Up to ' + fmtDateDisplay(to);
+  if(from === to) return fmtDateDisplay(from);
+  return fmtDateDisplay(from) + ' â€“ ' + fmtDateDisplay(to);
+}
+function dayOfWeekName(iso){
+  if(!iso) return '';
+  const parts = iso.split('-');
+  if(parts.length!==3) return '';
+  const d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return days[d.getDay()];
+}
+function stepStudentsMonth(delta){
+  let cur = APP.studentsMonth || currentMonthStr();
+  const parts = cur.split('-');
+  let y = parseInt(parts[0], 10), m = parseInt(parts[1], 10) + delta;
+  if(m < 1){ m = 12; y--; }
+  else if(m > 12){ m = 1; y++; }
+  APP.studentsMonth = y + '-' + String(m).padStart(2, '0');
+  render();
+}
+function setQuickRange(target, preset){
+  const today = todayStr();
+  let f = today, t = today;
+  if(preset === 1){
+    f = today; t = today;
+  } else if(typeof preset === 'number'){
+    const d = new Date();
+    d.setDate(d.getDate() - (preset - 1));
+    f = toIsoDate(d);
+    t = today;
+  } else if(preset === 'thisMonth'){
+    f = today.slice(0,7) + '-01';
+    t = today;
+  } else if(preset === 'lastMonth'){
+    const parts = today.split('-');
+    let y = parseInt(parts[0],10), m = parseInt(parts[1],10) - 1;
+    if(m < 1){ m = 12; y--; }
+    const ym = y + '-' + String(m).padStart(2,'0');
+    f = ym + '-01';
+    const lastD = new Date(y, m, 0).getDate();
+    t = ym + '-' + String(lastD).padStart(2,'0');
+  }
+  if(target === 'overview'){
+    APP.overviewFromDate = f; APP.overviewToDate = t;
+  } else if(target === 'parent'){
+    APP.parentReportFromDate = f; APP.parentReportToDate = t;
+  } else {
+    APP.reportFromDate = f; APP.reportToDate = t;
+  }
+  render();
+}
+function applyRange(target){
+  const fromEl = document.getElementById(target==='overview'?'ov-from':target==='parent'?'pr-from':'rep-from');
+  const toEl = document.getElementById(target==='overview'?'ov-to':target==='parent'?'pr-to':'rep-to');
+  if(target==='overview'){
+    if(fromEl && fromEl.value) APP.overviewFromDate = fromEl.value;
+    if(toEl && toEl.value) APP.overviewToDate = toEl.value;
+  } else if(target==='parent'){
+    if(fromEl && fromEl.value) APP.parentReportFromDate = fromEl.value;
+    if(toEl && toEl.value) APP.parentReportToDate = toEl.value;
+  } else {
+    if(fromEl && fromEl.value) APP.reportFromDate = fromEl.value;
+    if(toEl && toEl.value) APP.reportToDate = toEl.value;
+  }
+  render();
+}
 function toIsoDate(d){
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -650,11 +770,9 @@ function toast(msg){
 function computeStats(studentId, filterFn){
   filterFn = filterFn || function(){ return true; };
   const dr = APP.dailyRecords.filter(r=>r.studentId===studentId && filterFn(r.date));
-  const points = dr.reduce((s,r)=> s + (Number(r.performance)||0), 0);
-  const perfStars = Math.floor(points/30)*3;
+  const points = dr.reduce((s,r)=> s + (Number(r.performance !== undefined ? r.performance : r.score)||0), 0);
   const ach = APP.achievements.filter(a=>a.studentId===studentId && filterFn(a.date));
-  const achStars = ach.reduce((s,a)=> s + (Number(a.stars)||0), 0);
-  const totalStars = perfStars + achStars;
+  const totalStars = ach.reduce((s,a)=> s + (Number(a.stars)||0), 0);
   const tal = APP.tallies.filter(t=>t.studentId===studentId && filterFn(t.date));
   const talliesGiven = tal.reduce((s,t)=> s + (Number(t.count)||0), 0);
   const starsUsed = Math.min(totalStars, Math.floor(talliesGiven/2));
@@ -664,24 +782,31 @@ function computeStats(studentId, filterFn){
 
   const sess = APP.sessions.filter(s=>s.studentId===studentId && filterFn(s.date));
   let newLearnPages=0, oldRevisionPages=0, lastLearnPages=0, totalPages=0;
+  let newLearnScore=0, lastLearnScore=0, oldRevisionScore=0;
   sess.forEach(s=>{
     const pc = pageCount(s.fromPage, s.toPage);
     totalPages += pc;
-    // Last Learn ('New + Old' internally) is its own session type: never counted as New Learn or Old Revision.
-    if(s.type==='New Learn') newLearnPages += pc;
-    else if(s.type==='Old Learn / Revision') oldRevisionPages += pc;
-    else if(s.type==='New + Old') lastLearnPages += pc;
+    const sc = Number(s.score) || 0;
+    if(s.type==='New Learn'){ newLearnPages += pc; newLearnScore += sc; }
+    else if(s.type==='Old Learn / Revision'){ oldRevisionPages += pc; oldRevisionScore += sc; }
+    else if(s.type==='New + Old'){ lastLearnPages += pc; lastLearnScore += sc; }
   });
 
   const statusCounts = {};
   STATUS_OPTIONS.forEach(s=>{ statusCounts[s]=0; });
-  dr.forEach(r=>{ const ns = normStatus(r.status); if(statusCounts[ns]!==undefined) statusCounts[ns]++; });
+  statusCounts['Unrecorded'] = 0;
+  dr.forEach(r=>{ const ns = normStatus(r.status); if(statusCounts[ns]!==undefined) statusCounts[ns]++; else statusCounts[ns]=1; });
+
+  const recitedCount = statusCounts['Recited'] || 0;
+  const avgDailyScore = dr.length ? (points / dr.length).toFixed(1) : '0.0';
 
   return {
-    points, perfStars, achStars, totalStars, starsUsed, starsRemaining,
-    talliesGiven, talliesCancelled, talliesRemaining,
-    newLearnPages, oldRevisionPages, lastLearnPages, totalPages, sessionsCount: sess.length,
-    statusCounts, dailyRecordsCount: dr.length, achievementsCount: ach.length, talliesCount: tal.length
+    points, perfStars: 0, achStars: totalStars, totalStars, starsEarned: totalStars, starsUsed, starsRemaining,
+    talliesGiven, totalTallies: talliesGiven, talliesCancelled, talliesRemaining,
+    newLearnPages, oldRevisionPages, lastLearnPages, totalPages,
+    newLearnScore, lastLearnScore, oldRevisionScore, avgDailyScore,
+    sessionsCount: sess.length, statusCounts, dailyRecordsCount: dr.length,
+    achievementsCount: ach.length, talliesCount: tal.length
   };
 }
 function competitionColumns(type){ return type==='Qirath' ? QIRATH_COMP_COLUMNS : HIFZ_COMP_COLUMNS; }
@@ -1880,25 +2005,26 @@ function filteredStudents(){
 function renderStudentsView(){
   const list = filteredStudents();
   const batches = uniqueBatches();
+  APP.studentsMonth = APP.studentsMonth || currentMonthStr();
   let rows = '';
   if(list.length===0){
     rows = '<div class="empty">'+iconSvg('people')+'<p>No students found.</p></div>';
   } else {
     rows = '<div class="list">'+ list.map(function(s){
-      const stats = computeStats(s.id, filterAll());
+      const stats = computeStats(s.id, filterMonth(APP.studentsMonth));
       const inactive = s.active===false;
       const isDoura = s.studyType==='Doura';
       const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
-      const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' · '+esc(juzLabel(prog))) : esc(juzLabel(prog));
+      const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' Â· '+esc(juzLabel(prog))) : esc(juzLabel(prog));
       return '<div class="row-card" onclick="openStudentProfile(\''+s.id+'\')">'+
         '<div class="avatar">'+esc(initials(s.name))+'</div>'+
         '<div class="row-main">'+
           '<div class="row-title">'+esc(s.name)+(inactive?' <span class="badge inactive">Inactive</span>':'')+'</div>'+
-          '<div class="row-sub">'+esc(s.batch||'—')+' · '+progLabel+'</div>'+
+          '<div class="row-sub">'+esc(s.batch||'â€”')+' Â· '+progLabel+'</div>'+
         '</div>'+
         '<div class="row-end">'+
-          '<div class="badge stars">'+iconSvg('star')+' '+stats.starsRemaining+'</div><br/>'+
-          '<div class="badge tallies" style="margin-top:5px;">'+stats.talliesRemaining+' tallies</div>'+
+          '<div class="badge stars" title="Stars Earned in '+fmtMonthDisplay(APP.studentsMonth)+'">'+iconSvg('star')+' '+stats.totalStars+'</div><br/>'+
+          '<div class="badge tallies" style="margin-top:5px;" title="Total Tallies in '+fmtMonthDisplay(APP.studentsMonth)+'">'+stats.talliesGiven+' tallies</div>'+
         '</div>'+
       '</div>';
     }).join('') + '</div>';
@@ -1908,11 +2034,16 @@ function renderStudentsView(){
   '<div class="search-wrap">'+iconSvg('search')+
     '<input id="student-search-input" type="text" placeholder="Search by name or batch" value="'+esc(APP.studentSearch)+'" oninput="APP.studentSearch=this.value;render();">'+
   '</div>'+
-  '<div class="filter-row">'+
-    '<select onchange="APP.studentBatchFilter=this.value;render();">'+
+  '<div class="filter-row" style="align-items:center;flex-wrap:wrap;gap:8px;">'+
+    '<select onchange="APP.studentBatchFilter=this.value;render();" style="flex:1;min-width:130px;">'+
       '<option value="">All batches</option>'+
       batches.map(function(b){ return '<option value="'+esc(b)+'" '+(APP.studentBatchFilter===b?'selected':'')+'>'+esc(b)+'</option>'; }).join('')+
     '</select>'+
+    '<div style="display:flex;align-items:center;gap:4px;">'+
+      '<button type="button" class="btn small outline" onclick="stepStudentsMonth(-1)" style="padding:7px 10px;">&larr;</button>'+
+      '<input type="month" value="'+esc(APP.studentsMonth)+'" onchange="APP.studentsMonth=this.value;render();" style="padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:12px;font-weight:600;">'+
+      '<button type="button" class="btn small outline" onclick="stepStudentsMonth(1)" style="padding:7px 10px;">&rarr;</button>'+
+    '</div>'+
     '<button class="btn small outline" onclick="openStudentFormModal()">'+iconSvg('plus')+' Add Student</button>'+
   '</div>'+
   rows;
@@ -2159,12 +2290,21 @@ function renderStudentReport(){
 
   let content = '<div class="empty">'+iconSvg('people')+'<p>Add a student to see reports.</p></div>';
   if(s){
-    if(APP.reportMode==='weekly'){
-      const stats = computeStats(s.id, filterWeek(APP.reportWeek));
-      content = studentStatBlock(s, stats, fmtWeekDisplay(APP.reportWeek), filterWeek(APP.reportWeek));
+    if(APP.reportMode==='range'){
+      const from = APP.reportFromDate || currentMonthStartStr();
+      const to = APP.reportToDate || todayStr();
+      const filterFn = filterRange(from, to);
+      const stats = computeStats(s.id, filterFn);
+      content = studentStatBlock(s, stats, fmtRangeDisplay(from, to), filterFn, false, from, to);
     } else if(APP.reportMode==='monthly'){
       const stats = computeStats(s.id, filterMonth(APP.reportMonth));
-      content = studentStatBlock(s, stats, fmtMonthDisplay(APP.reportMonth), filterMonth(APP.reportMonth)) + monthlyRemarks(s.id, APP.reportMonth);
+      const parts = (APP.reportMonth || currentMonthStr()).split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const lastDay = new Date(y, m, 0).getDate();
+      const from = APP.reportMonth + '-01';
+      const to = APP.reportMonth + '-' + String(lastDay).padStart(2, '0');
+      content = studentStatBlock(s, stats, fmtMonthDisplay(APP.reportMonth), filterMonth(APP.reportMonth), false, from, to) + monthlyRemarks(s.id, APP.reportMonth);
     } else {
       content = yearlyReportTable(s);
     }
@@ -2178,12 +2318,28 @@ function renderStudentReport(){
     '</select>'+
   '</div>'+
   '<div class="seg" style="margin-bottom:14px;">'+
-    '<button class="'+(APP.reportMode==='weekly'?'active':'')+'" onclick="APP.reportMode=\'weekly\';render();">Weekly</button>'+
+    '<button class="'+(APP.reportMode==='range'?'active':'')+'" onclick="APP.reportMode=\'range\';render();">Date Range</button>'+
     '<button class="'+(APP.reportMode==='monthly'?'active':'')+'" onclick="APP.reportMode=\'monthly\';render();">Monthly</button>'+
     '<button class="'+(APP.reportMode==='yearly'?'active':'')+'" onclick="APP.reportMode=\'yearly\';render();">Yearly</button>'+
   '</div>'+
-  (APP.reportMode==='weekly' ?
-    '<div class="field" style="margin-bottom:14px;"><label>Week</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepWeek(-1,\'student\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="week" value="'+esc(APP.reportWeek)+'" onchange="APP.reportWeek=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepWeek(1,\'student\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div><div class="subtle" style="margin-top:4px;">'+esc(fmtWeekDisplay(APP.reportWeek))+'</div></div>' :
+  (APP.reportMode==='range' ?
+    '<div class="card" style="margin-bottom:14px;padding:12px;">'+
+      '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Custom Date Range</div>'+
+      '<div class="field-row" style="margin-bottom:8px;gap:8px;">'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="rep-from" value="'+esc(APP.reportFromDate)+'" onchange="APP.reportFromDate=this.value;"></div>'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="rep-to" value="'+esc(APP.reportToDate)+'" onchange="APP.reportToDate=this.value;"></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">'+
+        '<span class="subtle" style="font-size:11px;font-weight:600;">Presets:</span>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'student\',1)" style="padding:4px 8px;font-size:11px;border-radius:999px;">Today</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'student\',3)" style="padding:4px 8px;font-size:11px;border-radius:999px;">3 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'student\',7)" style="padding:4px 8px;font-size:11px;border-radius:999px;">7 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'student\',15)" style="padding:4px 8px;font-size:11px;border-radius:999px;">15 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'student\',\'thisMonth\')" style="padding:4px 8px;font-size:11px;border-radius:999px;">This Month</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'student\',\'lastMonth\')" style="padding:4px 8px;font-size:11px;border-radius:999px;">Last Month</button>'+
+      '</div>'+
+      '<button type="button" class="btn small block" onclick="applyRange(\'student\')" style="font-weight:700;padding:10px;background:var(--primary);color:#fff;">'+iconSvg('reports')+' Generate Report</button>'+
+    '</div>' :
    APP.reportMode==='monthly' ?
     '<div class="field" style="margin-bottom:14px;"><label>Month</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepMonth(-1,\'student\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="month" value="'+esc(APP.reportMonth)+'" onchange="APP.reportMonth=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepMonth(1,\'student\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>' :
     '<div class="field" style="margin-bottom:14px;"><label>Year</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepYear(-1,\'student\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="number" value="'+esc(APP.reportYear)+'" onchange="APP.reportYear=this.value;render();" style="width:110px;"><button type="button" class="btn small outline" onclick="stepYear(1,\'student\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>') +
@@ -2196,23 +2352,156 @@ function renderStudentReport(){
   content;
 }
 
-function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho){
+function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeFrom, rangeTo){
+  let from = rangeFrom;
+  let to = rangeTo;
+  if(!from || !to){
+    from = APP.reportFromDate || currentMonthStartStr();
+    to = APP.reportToDate || todayStr();
+  }
+  const allDates = getDatesInRange(from, to);
+  const recMap = {};
+  APP.dailyRecords.forEach(function(r){
+    if(r.studentId === s.id && r.date >= from && r.date <= to){
+      recMap[r.date] = r;
+    }
+  });
+
+  const sessMap = {};
+  APP.sessions.forEach(function(sess){
+    if(sess.studentId === s.id && sess.date >= from && sess.date <= to){
+      if(!sessMap[sess.date]) sessMap[sess.date] = [];
+      sessMap[sess.date].push(sess);
+    }
+  });
+
+  const achMap = {};
+  APP.achievements.forEach(function(a){
+    if(a.studentId === s.id && a.date >= from && a.date <= to){
+      if(!achMap[a.date]) achMap[a.date] = [];
+      achMap[a.date].push(a);
+    }
+  });
+
+  const tlyMap = {};
+  APP.tallies.forEach(function(t){
+    if(t.studentId === s.id && t.date >= from && t.date <= to){
+      if(!tlyMap[t.date]) tlyMap[t.date] = [];
+      tlyMap[t.date].push(t);
+    }
+  });
+
+  let dateRows = '';
+  let recordedDays = 0;
+  let recitedDays = 0;
+  let absentDays = 0;
+  let leaveDays = 0;
+  let unrecordedDays = 0;
+
+  allDates.forEach(function(d){
+    const dr = recMap[d];
+    const dSess = sessMap[d] || [];
+    const dAch = achMap[d] || [];
+    const dTallies = tlyMap[d] || [];
+
+    let statusDisplay = '';
+    let scoreDisplay = '-';
+    let remarksDisplay = '-';
+
+    if(dr){
+      recordedDays++;
+      const norm = normStatus(dr.status);
+      statusDisplay = statusBadge(dr.status);
+      if(norm === 'Recited') recitedDays++;
+      else if(norm === 'Sick' || norm === 'Home' || norm === 'Leave') leaveDays++;
+      else absentDays++;
+
+      if(dr.performance !== undefined && dr.performance !== null && dr.performance !== '') {
+        scoreDisplay = '<b>' + dr.performance + '/10</b>';
+      } else if(dr.score !== undefined && dr.score !== null && dr.score !== '') {
+        scoreDisplay = '<b>' + dr.score + '</b>';
+      }
+      if(dr.remarks){
+        remarksDisplay = esc(dr.remarks);
+      }
+    } else {
+      unrecordedDays++;
+      statusDisplay = '<span class="badge st-unrecorded">Unrecorded</span>';
+    }
+
+    let newLearnStr = '-';
+    let lastLearnStr = '-';
+    let revStr = '-';
+
+    dSess.forEach(function(ss){
+      const pages = (ss.pagesCount !== undefined && ss.pagesCount !== null) ? (ss.pagesCount + ' pg') : '';
+      const jz = ss.juz ? ('J' + ss.juz) : '';
+      const sc = (ss.score !== undefined && ss.score !== null) ? ('(' + ss.score + ')') : '';
+      const desc = [jz, pages, sc].filter(Boolean).join(' ');
+
+      if(ss.sessionType === 'New Learn') {
+        newLearnStr = newLearnStr === '-' ? desc : (newLearnStr + ', ' + desc);
+      } else if(ss.sessionType === 'New + Old') {
+        lastLearnStr = lastLearnStr === '-' ? desc : (lastLearnStr + ', ' + desc);
+      } else if(ss.sessionType === 'Old Learn / Revision') {
+        revStr = revStr === '-' ? desc : (revStr + ', ' + desc);
+      }
+    });
+
+    let extraBadges = '';
+    if(dAch.length){
+      const totalStars = dAch.reduce(function(sum, a){ return sum + (Number(a.stars) || 0); }, 0);
+      if(totalStars > 0) extraBadges += '<span class="badge stars" style="margin-right:4px;">â˜… ' + totalStars + '</span>';
+    }
+    if(dTallies.length){
+      const totalTly = dTallies.reduce(function(sum, t){ return sum + (Number(t.count) || 0); }, 0);
+      if(totalTly > 0) extraBadges += '<span class="badge tallies">' + totalTly + ' tally</span>';
+    }
+    if(!extraBadges) extraBadges = '-';
+
+    dateRows += '<tr>' +
+      '<td style="white-space:nowrap;"><b>' + fmtDateDisplay(d) + '</b><div class="subtle" style="font-size:10.5px;">' + dayOfWeekName(d) + '</div></td>' +
+      '<td>' + statusDisplay + '</td>' +
+      '<td>' + scoreDisplay + '</td>' +
+      '<td>' + newLearnStr + '</td>' +
+      '<td>' + lastLearnStr + '</td>' +
+      '<td>' + revStr + '</td>' +
+      '<td>' + extraBadges + '</td>' +
+      '<td style="max-width:140px;font-size:11px;color:var(--ink-soft);">' + remarksDisplay + '</td>' +
+    '</tr>';
+  });
+
+  const totalPeriodDays = allDates.length;
+  const attendanceRate = totalPeriodDays ? Math.round((recitedDays / totalPeriodDays) * 100) : 0;
+
   return ''+
   '<div class="card" style="margin-bottom:14px;">'+
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">'+
-      (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+' â€¢ '+esc(periodLabel)+'</div></div>')+
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:6px;">'+
+      (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'â€”')+' Â· '+esc(periodLabel)+' ('+totalPeriodDays+' Days)</div></div>')+
+      '<div style="display:flex;gap:6px;"><span class="badge success">'+recitedDays+' Recited</span><span class="badge warn">'+(absentDays+leaveDays)+' Absent/Leave</span>'+(unrecordedDays?'<span class="badge st-unrecorded">'+unrecordedDays+' Unrecorded</span>':'')+'</div>'+
     '</div>'+
-    '<div class="stat-mini-grid" style="margin-bottom:12px;grid-template-columns:repeat(2,1fr);">'+
-      '<div class="stat-mini"><div class="n">'+stats.newLearnPages+'</div><div class="l">New Learn Pages</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Remaining Tally</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.starsRemaining+'</div><div class="l">Stars</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">Performance Points</div></div>'+
+    '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">8-Metric Performance Summary</div>'+
+    '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(4,1fr);">'+
+      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Perf. Points</div></div>'+
+      '<div class="stat-mini"><div class="n">â˜… '+stats.totalStars+'</div><div class="l">2. Total Stars Earned</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Total Tallies</div></div>'+
+      '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">4. Days Recited ('+attendanceRate+'%)</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.newLearnPages+' pg</div><div class="l">5. New Learn ('+stats.newLearnScore+' pts)</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.lastLearnPages+' pg</div><div class="l">6. Last Learn ('+stats.lastLearnScore+' pts)</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.oldRevisionPages+' pg</div><div class="l">7. Revision ('+stats.oldRevisionScore+' pts)</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.avgDailyScore+'</div><div class="l">8. Overall Avg Score</div></div>'+
     '</div>'+
     '<div class="divider"></div>'+
-    '<div class="kv"><span class="k">New Learn Pages</span><span class="v"><b>'+stats.newLearnPages+'</b></span></div>'+
-    '<div class="kv"><span class="k">Remaining Tally</span><span class="v"><b>'+stats.talliesRemaining+'</b></span></div>'+
-    '<div class="kv"><span class="k">Stars</span><span class="v"><b>'+stats.starsRemaining+'</b></span></div>'+
-    '<div class="kv"><span class="k">Performance Points</span><span class="v"><b>'+stats.points+'</b></span></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
+      '<div style="font-weight:700;font-size:13px;color:var(--ink);">Daily Status & Activity Report</div>'+
+      '<div class="subtle" style="font-size:11px;">Showing every single day ('+totalPeriodDays+' days)</div>'+
+    '</div>'+
+    '<div class="table-scroll" style="max-height:480px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
+      '<table>'+
+        '<thead><tr><th>Date</th><th>Status</th><th>Score</th><th>New Learn</th><th>Last Learn</th><th>Revision</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
+        '<tbody>'+(dateRows || '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);">No dates in range</td></tr>')+'</tbody>'+
+      '</table>'+
+    '</div>'+
   '</div>';
 }
 
@@ -2236,23 +2525,23 @@ function yearlyReportTable(s, yearOverride){
     rows += '<tr>'+
       '<td><b>'+monthNames[m-1]+'</b></td>'+
       '<td>'+st.newLearnPages+'</td>'+
-      '<td>'+st.talliesRemaining+'</td>'+
-      '<td>'+st.starsRemaining+'</td>'+
+      '<td>'+st.talliesGiven+'</td>'+
+      '<td>â˜… '+st.totalStars+'</td>'+
       '<td>'+st.points+'</td>'+
     '</tr>';
   }
   const yearStats = computeStats(s.id, filterYear(year));
   return ''+
-  '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+' â€¢ '+esc(year)+' yearly report</div></div>'+
+  '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+' Â· '+esc(year)+' yearly report</div></div>'+
   '<div class="table-scroll" style="margin-bottom:14px;"><table>'+
-    '<tr><th>Month</th><th>New Learn</th><th>Remaining<br>Tally</th><th>Stars</th><th>Performance<br>Points</th></tr>'+
+    '<tr><th>Month</th><th>New Learn</th><th>Total Tallies</th><th>Stars Earned</th><th>Performance Points</th></tr>'+
     rows+
   '</table></div>'+
   '<div class="card">'+
     '<div class="section-title small">Year Totals ('+esc(year)+')</div>'+
     '<div class="kv"><span class="k">New Learn Pages</span><span class="v"><b>'+yearStats.newLearnPages+'</b></span></div>'+
-    '<div class="kv"><span class="k">Remaining Tally</span><span class="v"><b>'+yearStats.talliesRemaining+'</b></span></div>'+
-    '<div class="kv"><span class="k">Stars</span><span class="v"><b>'+yearStats.starsRemaining+'</b></span></div>'+
+    '<div class="kv"><span class="k">Total Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
+    '<div class="kv"><span class="k">Stars Earned</span><span class="v"><b>â˜… '+yearStats.totalStars+'</b></span></div>'+
     '<div class="kv"><span class="k">Performance Points</span><span class="v"><b>'+yearStats.points+'</b></span></div>'+
   '</div>';
 }
@@ -2263,54 +2552,81 @@ function renderOverviewReport(){
 
   let filterFn = null;
   let periodLabel = '';
-  if(APP.overviewMode==='weekly'){
-    filterFn = filterWeek(APP.overviewWeek);
-    periodLabel = fmtWeekDisplay(APP.overviewWeek);
+  let periodDays = 1;
+  if(APP.overviewMode==='range'){
+    const from = APP.overviewFromDate || currentMonthStartStr();
+    const to = APP.overviewToDate || todayStr();
+    filterFn = filterRange(from, to);
+    periodLabel = fmtRangeDisplay(from, to);
+    periodDays = Math.max(1, getDatesInRange(from, to).length);
   } else if(APP.overviewMode==='yearly'){
     filterFn = filterYear(APP.overviewYear);
     periodLabel = 'Year ' + APP.overviewYear;
+    periodDays = 365;
   } else {
-    filterFn = filterMonth(APP.overviewMonth);
-    periodLabel = fmtMonthDisplay(APP.overviewMonth);
+    const ym = APP.overviewMonth || currentMonthStr();
+    filterFn = filterMonth(ym);
+    periodLabel = fmtMonthDisplay(ym);
+    const parts = ym.split('-');
+    periodDays = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
   }
 
   const rows = list.map(function(s){
     const st = computeStats(s.id, filterFn);
-    return '<tr>'+
+    const recCount = st.statusCounts['Recited'] || 0;
+    return '<tr onclick="APP.reportsTab=\'student\';APP.reportStudentId=\''+s.id+'\';APP.reportMode=APP.overviewMode;APP.reportFromDate=APP.overviewFromDate;APP.reportToDate=APP.overviewToDate;APP.reportMonth=APP.overviewMonth;APP.reportYear=APP.overviewYear;render();" style="cursor:pointer;" title="Click to view detailed date report for '+esc(s.name)+'">'+
       '<td><b>'+esc(s.name)+'</b></td>'+
       '<td>'+esc(s.batch||'-')+'</td>'+
-      '<td>'+st.newLearnPages+'</td>'+
-      '<td>'+st.talliesRemaining+'</td>'+
-      '<td>'+st.starsRemaining+'</td>'+
-      '<td>'+st.points+'</td>'+
+      '<td><b>'+st.points+'</b></td>'+
+      '<td>â˜… '+st.totalStars+'</td>'+
+      '<td>'+st.talliesGiven+'</td>'+
+      '<td>'+st.newLearnPages+' pg</td>'+
+      '<td>'+st.lastLearnPages+' pg</td>'+
+      '<td>'+st.oldRevisionPages+' pg</td>'+
+      '<td>'+recCount+' / '+periodDays+' d</td>'+
     '</tr>';
   }).join('');
 
   return ''+
   '<div class="seg" style="margin-bottom:14px;">'+
-    '<button class="'+(APP.overviewMode==='weekly'?'active':'')+'" onclick="APP.overviewMode=\'weekly\';render();">Weekly</button>'+
+    '<button class="'+(APP.overviewMode==='range'?'active':'')+'" onclick="APP.overviewMode=\'range\';render();">Date Range</button>'+
     '<button class="'+(APP.overviewMode==='monthly'?'active':'')+'" onclick="APP.overviewMode=\'monthly\';render();">Monthly</button>'+
     '<button class="'+(APP.overviewMode==='yearly'?'active':'')+'" onclick="APP.overviewMode=\'yearly\';render();">Yearly</button>'+
   '</div>'+
-  '<div class="field-row" style="margin-bottom:14px;">'+
-    (APP.overviewMode==='weekly' ?
-      '<div class="field"><label>Week</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepWeek(-1,\'overview\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="week" value="'+esc(APP.overviewWeek)+'" onchange="APP.overviewWeek=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepWeek(1,\'overview\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div><div class="subtle" style="margin-top:4px;">'+esc(fmtWeekDisplay(APP.overviewWeek))+'</div></div>' :
-     APP.overviewMode==='yearly' ?
-      '<div class="field"><label>Year</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepYear(-1,\'overview\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="number" value="'+esc(APP.overviewYear)+'" onchange="APP.overviewYear=this.value;render();" style="width:110px;"><button type="button" class="btn small outline" onclick="stepYear(1,\'overview\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>' :
-      '<div class="field"><label>Month</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepMonth(-1,\'overview\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="month" value="'+esc(APP.overviewMonth)+'" onchange="APP.overviewMonth=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepMonth(1,\'overview\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>')+
-    '<div class="field"><label>Batch</label><select onchange="APP.overviewBatch=this.value;render();">'+
-      '<option value="">All batches</option>'+ batches.map(function(b){ return '<option value="'+esc(b)+'" '+(APP.overviewBatch===b?'selected':'')+'>'+esc(b)+'</option>'; }).join('')+
-    '</select></div>'+
-  '</div>'+
+  (APP.overviewMode==='range' ?
+    '<div class="card" style="margin-bottom:14px;padding:12px;">'+
+      '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Custom Date Range</div>'+
+      '<div class="field-row" style="margin-bottom:8px;gap:8px;">'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="ov-from" value="'+esc(APP.overviewFromDate)+'" onchange="APP.overviewFromDate=this.value;"></div>'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="ov-to" value="'+esc(APP.overviewToDate)+'" onchange="APP.overviewToDate=this.value;"></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">'+
+        '<span class="subtle" style="font-size:11px;font-weight:600;">Presets:</span>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'overview\',1)" style="padding:4px 8px;font-size:11px;border-radius:999px;">Today</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'overview\',3)" style="padding:4px 8px;font-size:11px;border-radius:999px;">3 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'overview\',7)" style="padding:4px 8px;font-size:11px;border-radius:999px;">7 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'overview\',15)" style="padding:4px 8px;font-size:11px;border-radius:999px;">15 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'overview\',\'thisMonth\')" style="padding:4px 8px;font-size:11px;border-radius:999px;">This Month</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'overview\',\'lastMonth\')" style="padding:4px 8px;font-size:11px;border-radius:999px;">Last Month</button>'+
+      '</div>'+
+      '<button type="button" class="btn small block" onclick="applyRange(\'overview\')" style="font-weight:700;padding:10px;background:var(--primary);color:#fff;">'+iconSvg('reports')+' Generate Report</button>'+
+    '</div>' :
+   APP.overviewMode==='monthly' ?
+    '<div class="field-row" style="margin-bottom:14px;"><div class="field" style="flex:1;"><label>Month</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepMonth(-1,\'overview\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="month" value="'+esc(APP.overviewMonth)+'" onchange="APP.overviewMonth=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepMonth(1,\'overview\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div></div>' :
+    '<div class="field-row" style="margin-bottom:14px;"><div class="field" style="flex:1;"><label>Year</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepYear(-1,\'overview\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="number" value="'+esc(APP.overviewYear)+'" onchange="APP.overviewYear=this.value;render();" style="width:110px;"><button type="button" class="btn small outline" onclick="stepYear(1,\'overview\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div></div>')+
+  '<div class="field" style="margin-bottom:14px;"><label>Filter by Batch</label><select onchange="APP.overviewBatch=this.value;render();">'+
+    '<option value="">All batches</option>'+ batches.map(function(b){ return '<option value="'+esc(b)+'" '+(APP.overviewBatch===b?'selected':'')+'>'+esc(b)+'</option>'; }).join('')+
+  '</select></div>'+
   '<div class="no-print" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
     '<button class="btn small" onclick="exportReportPdf()" style="background:var(--primary);color:#fff;">'+iconSvg('download')+' Save as PDF</button>'+
     '<button class="btn small" onclick="shareReportWhatsApp()" style="background:#25D366;color:#fff;border-color:#25D366;">'+iconSvg('whatsapp')+' Send to WhatsApp</button>'+
     '<button class="btn small outline" onclick="printReport()">'+iconSvg('print')+' Print</button>'+
     '<button class="btn small outline" onclick="exportOverviewCsv()">'+iconSvg('download')+' Export CSV</button>'+
   '</div>'+
+  '<div class="subtle" style="margin-bottom:8px;">'+list.length+' students in '+periodLabel+' Â· Click any student row to view full daily details</div>'+
   '<div class="table-scroll"><table>'+
-    '<tr><th>Student</th><th>Class</th><th>New Learn</th><th>Remaining<br>Tally</th><th>Stars</th><th>Performance<br>Points</th></tr>'+
-    (rows || '<tr><td colspan="6" style="text-align:center;color:var(--ink-faint);">No students</td></tr>')+
+    '<thead><tr><th>Student</th><th>Class</th><th>Points</th><th>Stars Earned</th><th>Total Tallies</th><th>New Learn</th><th>Last Learn</th><th>Revision</th><th>Attendance</th></tr></thead>'+
+    '<tbody>'+(rows || '<tr><td colspan="9" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
   '</table></div>';
 }
 /* ============================= REQUESTS (admin) ============================= */
@@ -2836,9 +3152,21 @@ function renderParentProfile(){
   const s = byId(APP.students, sid);
   if(!s) return '<div class="empty"><p>Your student profile could not be found.</p></div>';
   let reportContent = '';
-  if(APP.parentReportMode==='weekly'){ const stats = computeStats(sid, filterWeek(APP.parentReportWeek)); reportContent = studentStatBlock(s, stats, fmtWeekDisplay(APP.parentReportWeek), filterWeek(APP.parentReportWeek), true); } else if(APP.parentReportMode==='monthly'){
+  if(APP.parentReportMode==='range'){
+    const from = APP.parentReportFromDate || currentMonthStartStr();
+    const to = APP.parentReportToDate || todayStr();
+    const filterFn = filterRange(from, to);
+    const stats = computeStats(sid, filterFn);
+    reportContent = studentStatBlock(s, stats, fmtRangeDisplay(from, to), filterFn, true, from, to);
+  } else if(APP.parentReportMode==='monthly'){
     const stats = computeStats(sid, filterMonth(APP.parentReportMonth));
-    reportContent = studentStatBlock(s, stats, fmtMonthDisplay(APP.parentReportMonth), filterMonth(APP.parentReportMonth), true) + monthlyRemarks(sid, APP.parentReportMonth);
+    const parts = (APP.parentReportMonth || currentMonthStr()).split('-');
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const lastDay = new Date(y, m, 0).getDate();
+    const from = APP.parentReportMonth + '-01';
+    const to = APP.parentReportMonth + '-' + String(lastDay).padStart(2, '0');
+    reportContent = studentStatBlock(s, stats, fmtMonthDisplay(APP.parentReportMonth), filterMonth(APP.parentReportMonth), true, from, to) + monthlyRemarks(sid, APP.parentReportMonth);
   } else {
     reportContent = yearlyReportTable(s, APP.parentReportYear);
   }
@@ -2847,22 +3175,38 @@ function renderParentProfile(){
   '<div class="card" style="margin-bottom:18px;">'+
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">'+
       '<div class="avatar" style="width:46px;height:46px;font-size:16px;">'+esc(initials(s.name))+'</div>'+
-      '<div><div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;font-weight:600;">'+esc(s.name)+'</div><div class="subtle">'+esc(s.batch||'—')+'</div></div>'+
+      '<div><div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;font-weight:600;">'+esc(s.name)+'</div><div class="subtle">'+esc(s.batch||'â€”')+'</div></div>'+
     '</div>'+
     '<div class="kv"><span class="k">Study Type</span><span class="v">'+esc(s.studyType||'Hifz')+'</span></div>'+
     '<div class="kv"><span class="k">Admission Date</span><span class="v">'+fmtDateDisplay(s.joiningDate)+'</span></div>'+
-    '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'—')+'</span></div>'+
+    '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'â€”')+'</span></div>'+
     '<div class="kv"><span class="k">Current Juz</span><span class="v">'+esc(juzLabel(s.studyType==='Doura' ? douraCurrentDisplay(sid) : hifzCurrentDisplay(sid)))+'</span></div>'+
-    '<div class="kv"><span class="k">Login Username</span><span class="v">'+esc(s.loginUsername||'—')+'</span></div>'+
+    '<div class="kv"><span class="k">Login Username</span><span class="v">'+esc(s.loginUsername||'â€”')+'</span></div>'+
   '</div>'+
   '<div class="section-title small">Performance Reports</div>'+
   '<div class="seg" style="margin-bottom:14px;">'+
-    '<button class="'+(APP.parentReportMode==='weekly'?'active':'')+'" onclick="APP.parentReportMode=\'weekly\';render();">Weekly</button>'+
+    '<button class="'+(APP.parentReportMode==='range'?'active':'')+'" onclick="APP.parentReportMode=\'range\';render();">Date Range</button>'+
     '<button class="'+(APP.parentReportMode==='monthly'?'active':'')+'" onclick="APP.parentReportMode=\'monthly\';render();">Monthly</button>'+
     '<button class="'+(APP.parentReportMode==='yearly'?'active':'')+'" onclick="APP.parentReportMode=\'yearly\';render();">Yearly</button>'+
   '</div>'+
-  (APP.parentReportMode==='weekly' ?
-    '<div class="field" style="margin-bottom:14px;"><label>Week</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepWeek(-1,\'parent\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="week" value="'+esc(APP.parentReportWeek)+'" onchange="APP.parentReportWeek=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepWeek(1,\'parent\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div><div class="subtle" style="margin-top:4px;">'+esc(fmtWeekDisplay(APP.parentReportWeek))+'</div></div>' :
+  (APP.parentReportMode==='range' ?
+    '<div class="card" style="margin-bottom:14px;padding:12px;">'+
+      '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Custom Date Range</div>'+
+      '<div class="field-row" style="margin-bottom:8px;gap:8px;">'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="pr-from" value="'+esc(APP.parentReportFromDate)+'" onchange="APP.parentReportFromDate=this.value;"></div>'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="pr-to" value="'+esc(APP.parentReportToDate)+'" onchange="APP.parentReportToDate=this.value;"></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">'+
+        '<span class="subtle" style="font-size:11px;font-weight:600;">Presets:</span>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'parent\',1)" style="padding:4px 8px;font-size:11px;border-radius:999px;">Today</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'parent\',3)" style="padding:4px 8px;font-size:11px;border-radius:999px;">3 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'parent\',7)" style="padding:4px 8px;font-size:11px;border-radius:999px;">7 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'parent\',15)" style="padding:4px 8px;font-size:11px;border-radius:999px;">15 Days</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'parent\',\'thisMonth\')" style="padding:4px 8px;font-size:11px;border-radius:999px;">This Month</button>'+
+        '<button type="button" class="btn small outline" onclick="setQuickRange(\'parent\',\'lastMonth\')" style="padding:4px 8px;font-size:11px;border-radius:999px;">Last Month</button>'+
+      '</div>'+
+      '<button type="button" class="btn small block" onclick="applyRange(\'parent\')" style="font-weight:700;padding:10px;background:var(--primary);color:#fff;">'+iconSvg('reports')+' Generate Report</button>'+
+    '</div>' :
    APP.parentReportMode==='monthly' ?
     '<div class="field" style="margin-bottom:14px;"><label>Month</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepMonth(-1,\'parent\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="month" value="'+esc(APP.parentReportMonth)+'" onchange="APP.parentReportMonth=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepMonth(1,\'parent\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>' :
     '<div class="field" style="margin-bottom:14px;"><label>Year</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepYear(-1,\'parent\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="number" value="'+esc(APP.parentReportYear)+'" onchange="APP.parentReportYear=this.value;render();" style="width:110px;"><button type="button" class="btn small outline" onclick="stepYear(1,\'parent\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>')+
@@ -3175,9 +3519,11 @@ function shareReportWhatsApp(){
     const s = byId(APP.students, APP.reportStudentId);
     if(!s){ toast('Please select a student'); return; }
     let period = '', filterFn = null;
-    if(APP.reportMode==='weekly'){
-      period = fmtWeekDisplay(APP.reportWeek);
-      filterFn = filterWeek(APP.reportWeek);
+    if(APP.reportMode==='range'){
+      const from = APP.reportFromDate || currentMonthStartStr();
+      const to = APP.reportToDate || todayStr();
+      period = fmtRangeDisplay(from, to);
+      filterFn = filterRange(from, to);
     } else if(APP.reportMode==='yearly'){
       period = 'Year ' + APP.reportYear;
       filterFn = filterYear(APP.reportYear);
@@ -3188,23 +3534,28 @@ function shareReportWhatsApp(){
     const stats = computeStats(s.id, filterFn);
 
     text = 'ðŸ“– *Illuminated Hearts - Student Report*\n' +
-           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
+           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
            'ðŸ‘¤ *Student:* ' + (s.name||'') + '\n' +
            'ðŸ·ï¸ *Batch:* ' + (s.batch||'-') + '\n' +
            'ðŸ“… *Period:* ' + period + '\n' +
-           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
-           'ðŸ“Š *Report:*\n' +
-           'â€¢ New Learn Pages: *' + stats.newLearnPages + '*\n' +
-           'â€¢ Remaining Tally: *' + stats.talliesRemaining + '*\n' +
-           'â€¢ Stars: *' + stats.starsRemaining + '*\n' +
+           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
+           'ðŸ“Š *Performance Summary:*\n' +
            'â€¢ Performance Points: *' + stats.points + '*\n' +
-           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
+           'â€¢ Total Stars Earned: *' + stats.totalStars + '*\n' +
+           'â€¢ Total Tallies: *' + stats.talliesGiven + '*\n' +
+           'â€¢ New Learn: *' + stats.newLearnPages + ' pages (' + stats.newLearnScore + ' pts)*\n' +
+           'â€¢ Last Learn: *' + stats.lastLearnPages + ' pages (' + stats.lastLearnScore + ' pts)*\n' +
+           'â€¢ Revision: *' + stats.oldRevisionPages + ' pages (' + stats.oldRevisionScore + ' pts)*\n' +
+           'â€¢ Overall Avg Score: *' + stats.avgDailyScore + '*\n' +
+           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
            'Generated on ' + dateStr;
   } else {
     let period = '', filterFn = null;
-    if(APP.overviewMode==='weekly'){
-      period = fmtWeekDisplay(APP.overviewWeek);
-      filterFn = filterWeek(APP.overviewWeek);
+    if(APP.overviewMode==='range'){
+      const from = APP.overviewFromDate || currentMonthStartStr();
+      const to = APP.overviewToDate || todayStr();
+      period = fmtRangeDisplay(from, to);
+      filterFn = filterRange(from, to);
     } else if(APP.overviewMode==='yearly'){
       period = 'Year ' + APP.overviewYear;
       filterFn = filterYear(APP.overviewYear);
@@ -3216,10 +3567,10 @@ function shareReportWhatsApp(){
     text = 'ðŸ“– *Illuminated Hearts - All Students Report*\n' +
            'ðŸ“… *Period:* ' + period + '\n' +
            'ðŸ‘¥ *Total Students:* ' + list.length + '\n' +
-           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n';
+           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n';
     list.forEach(function(s, idx){
       const stats = computeStats(s.id, filterFn);
-      text += (idx+1) + '. *' + s.name + '* (' + (s.batch||'-') + '): New Learn: ' + stats.newLearnPages + ' | Tally Rem: ' + stats.talliesRemaining + ' | Stars: ' + stats.starsRemaining + ' | Pts: ' + stats.points + '\n';
+      text += (idx+1) + '. *' + s.name + '* (' + (s.batch||'-') + '): Pts: ' + stats.points + ' | Stars: ' + stats.totalStars + ' | Tallies: ' + stats.talliesGiven + ' | New: ' + stats.newLearnPages + 'pg | Last: ' + stats.lastLearnPages + 'pg | Rev: ' + stats.oldRevisionPages + 'pg\n';
     });
   }
 
@@ -3227,6 +3578,7 @@ function shareReportWhatsApp(){
   const waUrl = 'https://api.whatsapp.com/send?text=' + encoded;
   window.open(waUrl, '_blank');
 }
+
 async function printReport(){
   const main = document.getElementById('main-content');
   if(!main) return;
@@ -3271,49 +3623,98 @@ async function downloadCsv(filename, rows){
 function exportStudentCsv(){
   const s = byId(APP.students, APP.reportStudentId);
   if(!s) return;
-  let period = '', filterFn = null;
-  if(APP.reportMode==='weekly'){
-    period = APP.reportWeek;
-    filterFn = filterWeek(APP.reportWeek);
+  let period = '', filterFn = null, dates = [];
+  if(APP.reportMode==='range'){
+    const from = APP.reportFromDate || currentMonthStartStr();
+    const to = APP.reportToDate || todayStr();
+    period = from + '_to_' + to;
+    filterFn = filterRange(from, to);
+    dates = getDatesInRange(from, to);
   } else if(APP.reportMode==='yearly'){
     period = APP.reportYear;
     filterFn = filterYear(APP.reportYear);
+    dates = getDatesInRange(APP.reportYear+'-01-01', APP.reportYear+'-12-31');
   } else {
-    period = APP.reportMonth;
-    filterFn = filterMonth(APP.reportMonth);
+    const ym = APP.reportMonth || currentMonthStr();
+    period = ym;
+    filterFn = filterMonth(ym);
+    const parts = ym.split('-');
+    const lastDay = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
+    dates = getDatesInRange(ym+'-01', ym+'-'+String(lastDay).padStart(2,'0'));
   }
   const stats = computeStats(s.id, filterFn);
   const rows = [
-    ['Field','Value'],
+    ['--- SUMMARY ---',''],
     ['Student', s.name],
     ['Batch', s.batch||''],
     ['Period', period],
+    ['Performance Points', stats.points],
+    ['Total Stars Earned', stats.totalStars],
+    ['Total Tallies', stats.talliesGiven],
     ['New Learn Pages', stats.newLearnPages],
-    ['Remaining Tally', stats.talliesRemaining],
-    ['Stars', stats.starsRemaining],
-    ['Performance Points', stats.points]
+    ['Last Learn Pages', stats.lastLearnPages],
+    ['Old Revision Pages', stats.oldRevisionPages],
+    ['Total Pages Recited', stats.totalPages],
+    ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length],
+    ['',''],
+    ['--- DAILY STATUS BREAKDOWN ---','','','','','','',''],
+    ['Date','Day','Status','Score','New Learn Pages','Last Learn Pages','Revision Pages','Remarks']
   ];
+  dates.forEach(function(d){
+    const rec = byId(APP.dailyRecords, s.id+'_'+d);
+    const sess = APP.sessions.filter(function(x){ return x.studentId===s.id && x.date===d; });
+    const nl = sess.filter(function(x){ return x.type==='New Learn'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
+    const ll = sess.filter(function(x){ return x.type==='New + Old'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
+    const rev = sess.filter(function(x){ return x.type==='Old Learn / Revision'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
+    rows.push([
+      d,
+      dayOfWeekName(d),
+      rec ? normStatus(rec.status) : 'Unrecorded',
+      rec ? rec.performance : 0,
+      nl,
+      ll,
+      rev,
+      (rec && rec.remarks) ? rec.remarks : ''
+    ]);
+  });
   downloadCsv(s.name.replace(/\s+/g,'_')+'_'+period+'.csv', rows);
 }
 function exportOverviewCsv(){
-  let period = '', filterFn = null;
-  if(APP.overviewMode==='weekly'){
-    period = APP.overviewWeek;
-    filterFn = filterWeek(APP.overviewWeek);
+  let period = '', filterFn = null, periodDays = 1;
+  if(APP.overviewMode==='range'){
+    const from = APP.overviewFromDate || currentMonthStartStr();
+    const to = APP.overviewToDate || todayStr();
+    period = from + '_to_' + to;
+    filterFn = filterRange(from, to);
+    periodDays = getDatesInRange(from, to).length;
   } else if(APP.overviewMode==='yearly'){
     period = APP.overviewYear;
     filterFn = filterYear(APP.overviewYear);
+    periodDays = 365;
   } else {
     period = APP.overviewMonth;
     filterFn = filterMonth(APP.overviewMonth);
+    const parts = period.split('-');
+    periodDays = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
   }
   const list = filteredOverviewStudents();
-  const rows = [['Student','Class','New Learn','Remaining Tally','Stars','Performance Points']];
+  const rows = [['Student','Class','Performance Points','Total Stars Earned','Total Tallies','New Learn Pages','Last Learn Pages','Old Revision Pages','Days Recited','Total Days']];
   list.forEach(function(s){
     const st = computeStats(s.id, filterFn);
-    rows.push([s.name, s.batch||'', st.newLearnPages, st.talliesRemaining, st.starsRemaining, st.points]);
+    rows.push([
+      s.name,
+      s.batch||'',
+      st.points,
+      st.totalStars,
+      st.talliesGiven,
+      st.newLearnPages,
+      st.lastLearnPages,
+      st.oldRevisionPages,
+      st.statusCounts['Recited']||0,
+      periodDays
+    ]);
   });
-  downloadCsv('Academy_Report_'+period+'.csv', rows);
+  downloadCsv('Academy_Overview_Report_'+period+'.csv', rows);
 }
 
 /* ============================= MODALS ============================= */
