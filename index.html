@@ -478,6 +478,7 @@ const APP = {
   pView:'p-dashboard',
   studentSearch:'',
   studentBatchFilter:'',
+  studentActiveTab:'active',
   todayDate: todayStr(),
   reportsTab:'student',
   calendarDate: todayStr(),
@@ -2014,35 +2015,75 @@ function filteredStudents(){
   }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
 }
 
+function renderStudentCard(s, monthStr){
+  const stats = computeStats(s.id, filterMonth(monthStr));
+  const inactive = s.active===false;
+  const isDoura = s.studyType==='Doura';
+  const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
+  const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' Â· '+esc(juzLabel(prog))) : esc(juzLabel(prog));
+  return '<div class="row-card" onclick="openStudentProfile(\''+s.id+'\')">'+
+    '<div class="avatar">'+esc(initials(s.name))+'</div>'+
+    '<div class="row-main">'+
+      '<div class="row-title">'+esc(s.name)+(inactive?' <span class="badge inactive">Inactive</span>':'')+'</div>'+
+      '<div class="row-sub">'+esc(s.batch||'â€”')+' Â· '+progLabel+'</div>'+
+    '</div>'+
+    '<div class="row-end">'+
+      '<div class="badge stars" title="Stars Earned in '+fmtMonthDisplay(monthStr)+'">'+iconSvg('star')+' '+stats.totalStars+'</div><br/>'+
+      '<div class="badge tallies" style="margin-top:5px;" title="Total Tallies in '+fmtMonthDisplay(monthStr)+'">'+stats.talliesGiven+' tallies</div>'+
+    '</div>'+
+  '</div>';
+}
+
 function renderStudentsView(){
-  const list = filteredStudents();
+  const allFiltered = filteredStudents();
   const batches = uniqueBatches();
   APP.studentsMonth = APP.studentsMonth || currentMonthStr();
+  APP.studentActiveTab = APP.studentActiveTab || 'active';
+  const activeStudents = allFiltered.filter(function(s){ return s.active !== false; });
+  const inactiveStudents = allFiltered.filter(function(s){ return s.active === false; });
+  const curTab = APP.studentActiveTab;
+
+  const segButtons = ''+
+  '<div class="seg" style="margin-bottom:12px;">'+
+    '<button class="'+(curTab==='active'?'active':'')+'" onclick="APP.studentActiveTab=\'active\';render();">Active ('+activeStudents.length+')</button>'+
+    '<button class="'+(curTab==='inactive'?'active':'')+'" onclick="APP.studentActiveTab=\'inactive\';render();">Inactive ('+inactiveStudents.length+')</button>'+
+    '<button class="'+(curTab==='all'?'active':'')+'" onclick="APP.studentActiveTab=\'all\';render();">All ('+allFiltered.length+')</button>'+
+  '</div>';
+
   let rows = '';
-  if(list.length===0){
-    rows = '<div class="empty">'+iconSvg('people')+'<p>No students found.</p></div>';
+  if(curTab === 'active'){
+    if(activeStudents.length === 0){
+      rows = '<div class="empty">'+iconSvg('people')+'<p>No active students found.</p></div>';
+    } else {
+      rows = '<div class="list">'+ activeStudents.map(function(s){ return renderStudentCard(s, APP.studentsMonth); }).join('') + '</div>';
+    }
+  } else if(curTab === 'inactive'){
+    if(inactiveStudents.length === 0){
+      rows = '<div class="empty">'+iconSvg('people')+'<p>No inactive students found.</p></div>';
+    } else {
+      rows = '<div class="list">'+ inactiveStudents.map(function(s){ return renderStudentCard(s, APP.studentsMonth); }).join('') + '</div>';
+    }
   } else {
-    rows = '<div class="list">'+ list.map(function(s){
-      const stats = computeStats(s.id, filterMonth(APP.studentsMonth));
-      const inactive = s.active===false;
-      const isDoura = s.studyType==='Doura';
-      const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
-      const progLabel = isDoura ? ('Doura '+(prog.completed||0)+' Â· '+esc(juzLabel(prog))) : esc(juzLabel(prog));
-      return '<div class="row-card" onclick="openStudentProfile(\''+s.id+'\')">'+
-        '<div class="avatar">'+esc(initials(s.name))+'</div>'+
-        '<div class="row-main">'+
-          '<div class="row-title">'+esc(s.name)+(inactive?' <span class="badge inactive">Inactive</span>':'')+'</div>'+
-          '<div class="row-sub">'+esc(s.batch||'â€”')+' Â· '+progLabel+'</div>'+
-        '</div>'+
-        '<div class="row-end">'+
-          '<div class="badge stars" title="Stars Earned in '+fmtMonthDisplay(APP.studentsMonth)+'">'+iconSvg('star')+' '+stats.totalStars+'</div><br/>'+
-          '<div class="badge tallies" style="margin-top:5px;" title="Total Tallies in '+fmtMonthDisplay(APP.studentsMonth)+'">'+stats.talliesGiven+' tallies</div>'+
-        '</div>'+
-      '</div>';
-    }).join('') + '</div>';
+    if(allFiltered.length === 0){
+      rows = '<div class="empty">'+iconSvg('people')+'<p>No students found.</p></div>';
+    } else {
+      let actSec = '';
+      if(activeStudents.length > 0){
+        actSec = '<div class="section-title small" style="margin-top:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><span>Active Students</span><span class="badge success" style="font-size:11px;">'+activeStudents.length+'</span></div>'+
+          '<div class="list" style="margin-bottom:16px;">'+activeStudents.map(function(s){ return renderStudentCard(s, APP.studentsMonth); }).join('')+'</div>';
+      }
+      let inactSec = '';
+      if(inactiveStudents.length > 0){
+        inactSec = '<div class="section-title small" style="margin-top:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><span>Inactive Students</span><span class="badge inactive" style="font-size:11px;">'+inactiveStudents.length+'</span></div>'+
+          '<div class="list">'+inactiveStudents.map(function(s){ return renderStudentCard(s, APP.studentsMonth); }).join('')+'</div>';
+      }
+      rows = actSec + inactSec;
+    }
   }
+
   return ''+
   '<div class="section-title">Students</div>'+
+  segButtons +
   '<div class="search-wrap">'+iconSvg('search')+
     '<input id="student-search-input" type="text" placeholder="Search by name or batch" value="'+esc(APP.studentSearch)+'" oninput="APP.studentSearch=this.value;render();">'+
   '</div>'+
