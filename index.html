@@ -447,8 +447,8 @@ function statusBadge(status){
   const n = normStatus(status);
   return '<span class="badge '+(STATUS_CLASS[n]||'done')+'">'+esc(n)+'</span>';
 }
-const SESSION_TYPES = ['New Learn','New + Old','Old Learn / Revision']; // stored values unchanged; display order: New Learn, Last Learn, Revision
-const SESSION_TYPE_LABELS = {'New + Old':'Last Learn','Old Learn / Revision':'Revision'};
+const SESSION_TYPES = ['New Learn','Old Learn / Revision'];
+const SESSION_TYPE_LABELS = {'Old Learn / Revision':'Revision'};
 function sessionTypeLabel(t){ return SESSION_TYPE_LABELS[t] || t; }
 const RESULT_OPTIONS = ['Clear','Restart Required'];
 const AUTO_TALLY_RULES = {'Not Recited':2,'Not Reported':5};
@@ -717,7 +717,7 @@ function byId(arr,id){ return arr.find(x=>x.id===id); }
 function currentProgress(studentId){
   const s = byId(APP.students, studentId);
   const sess = APP.sessions.filter(function(x){
-    return x.studentId===studentId && (x.type==='New Learn' || x.type==='New + Old') && x.juz!=='' && x.toPage!=='';
+    return x.studentId===studentId && x.type==='New Learn' && x.juz!=='' && x.toPage!=='';
   }).slice().sort(function(a,b){
     if(a.date!==b.date) return a.date<b.date? 1 : -1;
     return (Number(b.sessionNo)||0) - (Number(a.sessionNo)||0);
@@ -781,15 +781,14 @@ function computeStats(studentId, filterFn){
   const talliesRemaining = Math.max(0, talliesGiven - talliesCancelled);
 
   const sess = APP.sessions.filter(s=>s.studentId===studentId && filterFn(s.date));
-  let newLearnPages=0, oldRevisionPages=0, lastLearnPages=0, totalPages=0;
-  let newLearnScore=0, lastLearnScore=0, oldRevisionScore=0;
+  let newLearnPages=0, oldRevisionPages=0, totalPages=0;
+  let newLearnScore=0, oldRevisionScore=0;
   sess.forEach(s=>{
     const pc = pageCount(s.fromPage, s.toPage);
     totalPages += pc;
     const sc = Number(s.score) || 0;
     if(s.type==='New Learn'){ newLearnPages += pc; newLearnScore += sc; }
-    else if(s.type==='Old Learn / Revision'){ oldRevisionPages += pc; oldRevisionScore += sc; }
-    else if(s.type==='New + Old'){ lastLearnPages += pc; lastLearnScore += sc; }
+    else if(s.type==='Old Learn / Revision' || s.type==='Revision'){ oldRevisionPages += pc; oldRevisionScore += sc; }
   });
 
   const statusCounts = {};
@@ -803,8 +802,8 @@ function computeStats(studentId, filterFn){
   return {
     points, perfStars: 0, achStars: totalStars, totalStars, starsEarned: totalStars, starsUsed, starsRemaining,
     talliesGiven, totalTallies: talliesGiven, talliesCancelled, talliesRemaining,
-    newLearnPages, oldRevisionPages, lastLearnPages, totalPages,
-    newLearnScore, lastLearnScore, oldRevisionScore, avgDailyScore,
+    newLearnPages, oldRevisionPages, totalPages,
+    newLearnScore, oldRevisionScore, avgDailyScore,
     sessionsCount: sess.length, statusCounts, dailyRecordsCount: dr.length,
     achievementsCount: ach.length, talliesCount: tal.length
   };
@@ -1533,7 +1532,7 @@ async function adjustJuzProgress(studentId, deltaPages, sessionType, completion)
   const s = byId(APP.students, studentId);
   if(!s) return;
   const isDoura = s.studyType==='Doura';
-  if(!isDoura && !(sessionType==='New Learn' || sessionType==='New + Old')) return;
+  if(!isDoura && sessionType!=='New Learn') return;
   const k = progressKeys(s);
   const cur = Number(s[k.p])||0;
   let pages = Math.max(0, Math.min(PAGES_PER_JUZ, cur + (deltaPages||0)));
@@ -1548,7 +1547,7 @@ async function adjustJuzProgress(studentId, deltaPages, sessionType, completion)
 }
 
 /* ---- Hifz Current Juz: derived (never accumulated) from a base position + the student's New Learn sessions ----
-   - Only valid 'New Learn' sessions move Current Juz. Last Learn ('New + Old') and Old Revision never do.
+   - Only valid 'New Learn' sessions move Current Juz. Old Revision never does.
    - The Juz and 'To page' of the latest New Learn session set the position (Juz 5, pages 15-17 => Juz 5 - Page 17).
    - Page 20 completes the Juz only when that saved session's result is "Clear"; the next Juz is then shown without a page.
      After Juz 30 the sequence goes back to Juz 1 (there is never a Juz 31).
@@ -2443,7 +2442,6 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     }
 
     let newLearnStr = '-';
-    let lastLearnStr = '-';
     let revStr = '-';
 
     dSess.forEach(function(ss){
@@ -2454,9 +2452,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
 
       if(ss.sessionType === 'New Learn') {
         newLearnStr = newLearnStr === '-' ? desc : (newLearnStr + ', ' + desc);
-      } else if(ss.sessionType === 'New + Old') {
-        lastLearnStr = lastLearnStr === '-' ? desc : (lastLearnStr + ', ' + desc);
-      } else if(ss.sessionType === 'Old Learn / Revision') {
+      } else if(ss.sessionType === 'Old Learn / Revision' || ss.sessionType === 'Revision') {
         revStr = revStr === '-' ? desc : (revStr + ', ' + desc);
       }
     });
@@ -2477,7 +2473,6 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       '<td>' + statusDisplay + '</td>' +
       '<td>' + scoreDisplay + '</td>' +
       '<td>' + newLearnStr + '</td>' +
-      '<td>' + lastLearnStr + '</td>' +
       '<td>' + revStr + '</td>' +
       '<td>' + extraBadges + '</td>' +
       '<td style="max-width:140px;font-size:11px;color:var(--ink-soft);">' + remarksDisplay + '</td>' +
@@ -2493,16 +2488,15 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'â€”')+' Â· '+esc(periodLabel)+' ('+totalPeriodDays+' Days)</div></div>')+
       '<div style="display:flex;gap:6px;"><span class="badge success">'+recitedDays+' Recited</span><span class="badge warn">'+(absentDays+leaveDays)+' Absent/Leave</span>'+(unrecordedDays?'<span class="badge st-unrecorded">'+unrecordedDays+' Unrecorded</span>':'')+'</div>'+
     '</div>'+
-    '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">8-Metric Performance Summary</div>'+
-    '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(4,1fr);">'+
+    '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Performance Summary</div>'+
+    '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(3,1fr);">'+
       '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Perf. Points</div></div>'+
       '<div class="stat-mini"><div class="n">â˜… '+stats.totalStars+'</div><div class="l">2. Total Stars Earned</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Total Tallies</div></div>'+
       '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">4. Days Recited ('+attendanceRate+'%)</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.newLearnPages+' pg</div><div class="l">5. New Learn ('+stats.newLearnScore+' pts)</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.lastLearnPages+' pg</div><div class="l">6. Last Learn ('+stats.lastLearnScore+' pts)</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.oldRevisionPages+' pg</div><div class="l">7. Revision ('+stats.oldRevisionScore+' pts)</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.avgDailyScore+'</div><div class="l">8. Overall Avg Score</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.oldRevisionPages+' pg</div><div class="l">6. Revision ('+stats.oldRevisionScore+' pts)</div></div>'+
+      '<div class="stat-mini" style="grid-column:1/-1;"><div class="n">'+stats.avgDailyScore+'</div><div class="l">7. Overall Daily Avg Score</div></div>'+
     '</div>'+
     '<div class="divider"></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
@@ -2511,8 +2505,8 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     '</div>'+
     '<div class="table-scroll" style="max-height:480px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
       '<table>'+
-        '<thead><tr><th>Date</th><th>Status</th><th>Score</th><th>New Learn</th><th>Last Learn</th><th>Revision</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
-        '<tbody>'+(dateRows || '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);">No dates in range</td></tr>')+'</tbody>'+
+        '<thead><tr><th>Date</th><th>Status</th><th>Score</th><th>New Learn</th><th>Revision</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
+        '<tbody>'+(dateRows || '<tr><td colspan="7" style="text-align:center;color:var(--ink-faint);">No dates in range</td></tr>')+'</tbody>'+
       '</table>'+
     '</div>'+
   '</div>';
@@ -2594,7 +2588,6 @@ function renderOverviewReport(){
       '<td>â˜… '+st.totalStars+'</td>'+
       '<td>'+st.talliesGiven+'</td>'+
       '<td>'+st.newLearnPages+' pg</td>'+
-      '<td>'+st.lastLearnPages+' pg</td>'+
       '<td>'+st.oldRevisionPages+' pg</td>'+
       '<td>'+recCount+' / '+periodDays+' d</td>'+
     '</tr>';
@@ -2638,8 +2631,8 @@ function renderOverviewReport(){
   '</div>'+
   '<div class="subtle" style="margin-bottom:8px;">'+list.length+' students in '+periodLabel+' Â· Click any student row to view full daily details</div>'+
   '<div class="table-scroll"><table>'+
-    '<thead><tr><th>Student</th><th>Class</th><th>Points</th><th>Stars Earned</th><th>Total Tallies</th><th>New Learn</th><th>Last Learn</th><th>Revision</th><th>Attendance</th></tr></thead>'+
-    '<tbody>'+(rows || '<tr><td colspan="9" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
+    '<thead><tr><th>Student</th><th>Class</th><th>Points</th><th>Stars Earned</th><th>Total Tallies</th><th>New Learn</th><th>Revision</th><th>Attendance</th></tr></thead>'+
+    '<tbody>'+(rows || '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
   '</table></div>';
 }
 /* ============================= REQUESTS (admin) ============================= */
@@ -3119,7 +3112,7 @@ function renderParentDashboard(){
     progressRows+
     '<div class="kv"><span class="k">Total New Learn Pages</span><span class="v">'+stats.newLearnPages+' pages</span></div>'+
     '<div class="kv"><span class="k">Total Old Revision Pages</span><span class="v">'+stats.oldRevisionPages+' pages</span></div>'+
-    '<div class="kv"><span class="k">Total Last Learn Pages</span><span class="v">'+stats.lastLearnPages+' pages</span></div>'+
+    
     '<div class="kv"><span class="k">Total Recitation Sessions</span><span class="v">'+stats.sessionsCount+' sessions</span></div>'+
   '</div>'+
   '<div class="card" style="margin-bottom:18px;">'+
@@ -3557,7 +3550,7 @@ function shareReportWhatsApp(){
            'â€¢ Total Stars Earned: *' + stats.totalStars + '*\n' +
            'â€¢ Total Tallies: *' + stats.talliesGiven + '*\n' +
            'â€¢ New Learn: *' + stats.newLearnPages + ' pages (' + stats.newLearnScore + ' pts)*\n' +
-           'â€¢ Last Learn: *' + stats.lastLearnPages + ' pages (' + stats.lastLearnScore + ' pts)*\n' +
+           
            'â€¢ Revision: *' + stats.oldRevisionPages + ' pages (' + stats.oldRevisionScore + ' pts)*\n' +
            'â€¢ Overall Avg Score: *' + stats.avgDailyScore + '*\n' +
            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
@@ -3583,7 +3576,7 @@ function shareReportWhatsApp(){
            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n';
     list.forEach(function(s, idx){
       const stats = computeStats(s.id, filterFn);
-      text += (idx+1) + '. *' + s.name + '* (' + (s.batch||'-') + '): Pts: ' + stats.points + ' | Stars: ' + stats.totalStars + ' | Tallies: ' + stats.talliesGiven + ' | New: ' + stats.newLearnPages + 'pg | Last: ' + stats.lastLearnPages + 'pg | Rev: ' + stats.oldRevisionPages + 'pg\n';
+      text += (idx+1) + '. *' + s.name + '* (' + (s.batch||'-') + '): Pts: ' + stats.points + ' | Stars: ' + stats.totalStars + ' | Tallies: ' + stats.talliesGiven + ' | New: ' + stats.newLearnPages + 'pg | Rev: ' + stats.oldRevisionPages + 'pg\n';
     });
   }
 
@@ -3665,19 +3658,18 @@ function exportStudentCsv(){
     ['Total Stars Earned', stats.totalStars],
     ['Total Tallies', stats.talliesGiven],
     ['New Learn Pages', stats.newLearnPages],
-    ['Last Learn Pages', stats.lastLearnPages],
+
     ['Old Revision Pages', stats.oldRevisionPages],
     ['Total Pages Recited', stats.totalPages],
     ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length],
     ['',''],
     ['--- DAILY STATUS BREAKDOWN ---','','','','','','',''],
-    ['Date','Day','Status','Score','New Learn Pages','Last Learn Pages','Revision Pages','Remarks']
+    ['Date','Day','Status','Score','New Learn Pages','Revision Pages','Remarks']
   ];
   dates.forEach(function(d){
     const rec = byId(APP.dailyRecords, s.id+'_'+d);
     const sess = APP.sessions.filter(function(x){ return x.studentId===s.id && x.date===d; });
     const nl = sess.filter(function(x){ return x.type==='New Learn'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
-    const ll = sess.filter(function(x){ return x.type==='New + Old'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
     const rev = sess.filter(function(x){ return x.type==='Old Learn / Revision'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
     rows.push([
       d,
@@ -3685,7 +3677,6 @@ function exportStudentCsv(){
       rec ? normStatus(rec.status) : 'Unrecorded',
       rec ? rec.performance : 0,
       nl,
-      ll,
       rev,
       (rec && rec.remarks) ? rec.remarks : ''
     ]);
@@ -3711,7 +3702,7 @@ function exportOverviewCsv(){
     periodDays = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
   }
   const list = filteredOverviewStudents();
-  const rows = [['Student','Class','Performance Points','Total Stars Earned','Total Tallies','New Learn Pages','Last Learn Pages','Old Revision Pages','Days Recited','Total Days']];
+  const rows = [['Student','Class','Performance Points','Total Stars Earned','Total Tallies','New Learn Pages','Old Revision Pages','Days Recited','Total Days']];
   list.forEach(function(s){
     const st = computeStats(s.id, filterFn);
     rows.push([
@@ -3721,7 +3712,6 @@ function exportOverviewCsv(){
       st.totalStars,
       st.talliesGiven,
       st.newLearnPages,
-      st.lastLearnPages,
       st.oldRevisionPages,
       st.statusCounts['Recited']||0,
       periodDays
@@ -4002,7 +3992,7 @@ function studentProfileDetailHtml(studentId, isAdmin){
     '</div>'+
     '<div class="kv"><span class="k">Performance Points</span><span class="v">'+stats.points+'</span></div>'+
     '<div class="kv"><span class="k">New Learn / Old Revision Pages</span><span class="v">'+stats.newLearnPages+' / '+stats.oldRevisionPages+'</span></div>'+
-    '<div class="kv"><span class="k">Last Learn Pages</span><span class="v">'+stats.lastLearnPages+'</span></div>'+
+    
     '<div class="kv"><span class="k">Total Recitation Sessions</span><span class="v">'+stats.sessionsCount+'</span></div>'+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Daily Records</div>'+
@@ -4045,7 +4035,6 @@ function shareStudentProfileWhatsApp(studentId){
                '📊 *Lifetime Records:*\n' +
                '• New Learn Pages: *' + stats.newLearnPages + '*\n' +
                '• Old Revision Pages: *' + stats.oldRevisionPages + '*\n' +
-               '• Last Learn Pages: *' + stats.lastLearnPages + '*\n' +
                '• Sessions Completed: *' + stats.sessionsCount + '*\n' +
                '⭐ *Stars Remaining:* ' + stats.starsRemaining + '\n' +
                '🏷️ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
