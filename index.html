@@ -544,6 +544,17 @@ function getDatesInRange(from, to){
   }
   return dates;
 }
+function hasAcademyEntryOnDate(date){
+  if(!date) return false;
+  return APP.dailyRecords.some(function(r){ return r.date === date; }) ||
+         APP.sessions.some(function(s){ return s.date === date; }) ||
+         APP.achievements.some(function(a){ return a.date === date; }) ||
+         APP.tallies.some(function(t){ return t.date === date; });
+}
+function getWorkingDatesInRange(from, to){
+  const allCalendarDates = getDatesInRange(from, to);
+  return allCalendarDates.filter(hasAcademyEntryOnDate);
+}
 function fmtRangeDisplay(from, to){
   if(!from && !to) return 'All time';
   if(from && !to) return 'From ' + fmtDateDisplay(from);
@@ -2414,7 +2425,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     from = APP.reportFromDate || currentMonthStartStr();
     to = APP.reportToDate || todayStr();
   }
-  const allDates = getDatesInRange(from, to);
+  const allDates = getWorkingDatesInRange(from, to);
   const recMap = {};
   APP.dailyRecords.forEach(function(r){
     if(r.studentId === s.id && r.date >= from && r.date <= to){
@@ -2528,7 +2539,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
   return ''+
   '<div class="card" style="margin-bottom:14px;">'+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:6px;">'+
-      (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'â€”')+' Â· '+esc(periodLabel)+' ('+totalPeriodDays+' Days)</div></div>')+
+      (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'â€”')+' Â· '+esc(periodLabel)+' ('+totalPeriodDays+' Working Days)</div></div>')+
       '<div style="display:flex;gap:6px;"><span class="badge success">'+recitedDays+' Recited</span><span class="badge warn">'+(absentDays+leaveDays)+' Absent/Leave</span>'+(unrecordedDays?'<span class="badge st-unrecorded">'+unrecordedDays+' Unrecorded</span>':'')+'</div>'+
     '</div>'+
     '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Performance Summary</div>'+
@@ -2544,12 +2555,12 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     '<div class="divider"></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
       '<div style="font-weight:700;font-size:13px;color:var(--ink);">Daily Status & Activity Report</div>'+
-      '<div class="subtle" style="font-size:11px;">Showing every single day ('+totalPeriodDays+' days)</div>'+
+      '<div class="subtle" style="font-size:11px;">Showing working days ('+totalPeriodDays+' days)</div>'+
     '</div>'+
     '<div class="table-scroll" style="max-height:480px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
       '<table>'+
         '<thead><tr><th>Date</th><th>Status</th><th>Score</th><th>New Learn</th><th>Revision</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
-        '<tbody>'+(dateRows || '<tr><td colspan="7" style="text-align:center;color:var(--ink-faint);">No dates in range</td></tr>')+'</tbody>'+
+        '<tbody>'+(dateRows || '<tr><td colspan="7" style="text-align:center;color:var(--ink-faint);">No working days recorded in this period (Holidays / No entries)</td></tr>')+'</tbody>'+
       '</table>'+
     '</div>'+
   '</div>';
@@ -2608,17 +2619,18 @@ function renderOverviewReport(){
     const to = APP.overviewToDate || todayStr();
     filterFn = filterRange(from, to);
     periodLabel = fmtRangeDisplay(from, to);
-    periodDays = Math.max(1, getDatesInRange(from, to).length);
+    periodDays = getWorkingDatesInRange(from, to).length;
   } else if(APP.overviewMode==='yearly'){
     filterFn = filterYear(APP.overviewYear);
     periodLabel = 'Year ' + APP.overviewYear;
-    periodDays = 365;
+    periodDays = getWorkingDatesInRange(APP.overviewYear+'-01-01', APP.overviewYear+'-12-31').length;
   } else {
     const ym = APP.overviewMonth || currentMonthStr();
     filterFn = filterMonth(ym);
     periodLabel = fmtMonthDisplay(ym);
     const parts = ym.split('-');
-    periodDays = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
+    const lastDay = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
+    periodDays = getWorkingDatesInRange(ym+'-01', ym+'-'+String(lastDay).padStart(2,'0')).length;
   }
 
   const rows = list.map(function(s){
@@ -2672,7 +2684,7 @@ function renderOverviewReport(){
     '<button class="btn small outline" onclick="printReport()">'+iconSvg('print')+' Print</button>'+
     '<button class="btn small outline" onclick="exportOverviewCsv()">'+iconSvg('download')+' Export CSV</button>'+
   '</div>'+
-  '<div class="subtle" style="margin-bottom:8px;">'+list.length+' students in '+periodLabel+' Â· Click any student row to view full daily details</div>'+
+  '<div class="subtle" style="margin-bottom:8px;">'+list.length+' students in '+periodLabel+' ('+periodDays+' working days) Â· Click any student row to view full daily details</div>'+
   '<div class="table-scroll"><table>'+
     '<thead><tr><th>Student</th><th>Class</th><th>Points</th><th>Stars Earned</th><th>Total Tallies</th><th>New Learn</th><th>Revision</th><th>Attendance</th></tr></thead>'+
     '<tbody>'+(rows || '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
@@ -3678,18 +3690,18 @@ function exportStudentCsv(){
     const to = APP.reportToDate || todayStr();
     period = from + '_to_' + to;
     filterFn = filterRange(from, to);
-    dates = getDatesInRange(from, to);
+    dates = getWorkingDatesInRange(from, to);
   } else if(APP.reportMode==='yearly'){
     period = APP.reportYear;
     filterFn = filterYear(APP.reportYear);
-    dates = getDatesInRange(APP.reportYear+'-01-01', APP.reportYear+'-12-31');
+    dates = getWorkingDatesInRange(APP.reportYear+'-01-01', APP.reportYear+'-12-31');
   } else {
     const ym = APP.reportMonth || currentMonthStr();
     period = ym;
     filterFn = filterMonth(ym);
     const parts = ym.split('-');
     const lastDay = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
-    dates = getDatesInRange(ym+'-01', ym+'-'+String(lastDay).padStart(2,'0'));
+    dates = getWorkingDatesInRange(ym+'-01', ym+'-'+String(lastDay).padStart(2,'0'));
   }
   const stats = computeStats(s.id, filterFn);
   const rows = [
@@ -3704,7 +3716,7 @@ function exportStudentCsv(){
 
     ['Old Revision Pages', stats.oldRevisionPages],
     ['Total Pages Recited', stats.totalPages],
-    ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length],
+    ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length + ' working days'],
     ['',''],
     ['--- DAILY STATUS BREAKDOWN ---','','','','','','',''],
     ['Date','Day','Status','Score','New Learn Pages','Revision Pages','Remarks']
@@ -3733,16 +3745,17 @@ function exportOverviewCsv(){
     const to = APP.overviewToDate || todayStr();
     period = from + '_to_' + to;
     filterFn = filterRange(from, to);
-    periodDays = getDatesInRange(from, to).length;
+    periodDays = getWorkingDatesInRange(from, to).length;
   } else if(APP.overviewMode==='yearly'){
     period = APP.overviewYear;
     filterFn = filterYear(APP.overviewYear);
-    periodDays = 365;
+    periodDays = getWorkingDatesInRange(APP.overviewYear+'-01-01', APP.overviewYear+'-12-31').length;
   } else {
     period = APP.overviewMonth;
     filterFn = filterMonth(APP.overviewMonth);
     const parts = period.split('-');
-    periodDays = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
+    const lastDay = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
+    periodDays = getWorkingDatesInRange(period+'-01', period+'-'+String(lastDay).padStart(2,'0')).length;
   }
   const list = filteredOverviewStudents();
   const rows = [['Student','Class','Performance Points','Total Stars Earned','Total Tallies','New Learn Pages','Old Revision Pages','Days Recited','Total Days']];
