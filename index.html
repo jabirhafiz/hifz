@@ -429,7 +429,7 @@
 const STATUS_OPTIONS = ['Recited','Not Recited','Home','Sick','Reported','Not Reported','Absent','Leave'];
 const LEAVE_REASONS = ['Home','Sick','Reported','Leave'];
 // 'Out Program' was renamed 'Reported'. Old records keep working: every read goes through normStatus().
-const LEGACY_STATUS = { 'Out Program':'Reported', 'Absent':'Not Recited', 'Leave':'Home' };
+const LEGACY_STATUS = { 'Out Program':'Reported' };
 function normStatus(s){ return LEGACY_STATUS[s] || s; }
 const STATUS_CLASS = {
   'Recited':'st-recited',
@@ -1455,6 +1455,19 @@ async function saveDailyRecord(studentId, date, performance, status, remarks){
   const prevRec = byId(APP.dailyRecords, id);
   // createdAt = when the record was FIRST added; editing never changes it (Today's Record ordering relies on it)
   const createdAt = prevRec ? (prevRec.createdAt || prevRec.updatedAt || Date.now()) : Date.now();
+  const optimisticRec = {
+    id: id,
+    studentId: studentId, date: date,
+    performance: Number(performance)||0,
+    status: status, remarks: remarks||'',
+    createdAt: createdAt,
+    updatedAt: Date.now()
+  };
+  const exIdx = APP.dailyRecords.findIndex(function(r){ return r.id === id; });
+  if(exIdx !== -1) APP.dailyRecords[exIdx] = optimisticRec;
+  else APP.dailyRecords.push(optimisticRec);
+  render();
+
   await dbc('dailyRecords').doc(id).set({
     studentId: studentId, date: date,
     performance: Number(performance)||0,
@@ -1972,7 +1985,7 @@ function renderDashboard(){
     '<div class="dstat"><div class="stat-num num">'+home+'</div><div class="stat-label">Home</div></div>'+
     '<div class="dstat"><div class="stat-num num">'+sick+'</div><div class="stat-label">Sick</div></div>'+
     '<div class="dstat"><div class="stat-num num">'+notReported+'</div><div class="stat-label">Not Reported</div></div>'+
-    '<div class="dstat"><div class="stat-num num">'+reported+'</div><div class="stat-label">Out Program</div></div>'+
+    '<div class="dstat"><div class="stat-num num">'+reported+'</div><div class="stat-label">Reported</div></div>'+
   '</div>'+
   (can('records') ? '<div class="quick-actions">'+
     '<button class="qa-btn wide" onclick="openPickStudentModal(\'daily\')"><div class="qa-ic">'+iconSvg('today')+'</div><span>Today\'s Record</span></button>'+
