@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -195,13 +195,13 @@
   .stat-card.s-recited{--dot:var(--success);} .stat-card.s-notrecited{--dot:var(--error);} .stat-card.s-home{--dot:var(--home);}
   .stat-card.s-sick{--dot:var(--warn);} .stat-card.s-reported{--dot:var(--primary-text);} .stat-card.s-notreported{--dot:var(--neutral);}
   .stat-card.s-pending{--dot:var(--accent);}
-  .dash-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-  .dstat{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:12px 10px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;text-align:center;box-shadow:0 1px 4px rgba(120,50,40,0.03);}
-  .dstat .stat-num{font-size:30px;font-weight:800;color:var(--ink);text-align:center;width:100%;line-height:1;}
-  .dstat .stat-label{margin-top:0;font-size:13.5px;font-weight:600;color:var(--ink-soft);text-align:center;width:100%;justify-content:center;}
-  .dstat.primary{background:#DF5A49;border-color:#DF5A49;box-shadow:0 4px 14px rgba(218,90,71,0.25);}
+  .dash-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .dstat{background:var(--surface);border:1.5px solid var(--border);border-radius:24px;padding:20px 18px;min-height:112px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;min-width:0;}
+  .dstat .stat-num{font-size:38px;font-weight:800;color:var(--ink);}
+  .dstat .stat-label{margin-top:0;font-size:15px;font-weight:500;color:var(--ink-soft);}
+  .dstat.primary{background:#DF5A49;border-color:#DF5A49;}
   .dstat.primary .stat-num,.dstat.primary .stat-label{color:#fff;}
-  @media (max-width:360px){.dash-stats{gap:8px;}.dstat{padding:10px 8px;min-height:68px;border-radius:16px;}.dstat .stat-num{font-size:26px;}.dstat .stat-label{font-size:12px;}}
+  @media (max-width:360px){.dash-stats{gap:8px;}.dstat{padding:16px 14px;min-height:96px;border-radius:20px;}.dstat .stat-num{font-size:32px;}.dstat .stat-label{font-size:13px;}}
 
 
 
@@ -420,60 +420,6 @@
     #main-content{padding:0;max-width:100%;}
     body{background:#fff;}
   }
-  /* Dashboard FAB (Floating Action Button) */
-  .dash-fab-wrapper{
-    position:fixed;right:20px;bottom:calc(var(--nav-total, 68px) + 16px);z-index:99;
-    display:flex;flex-direction:column;align-items:flex-end;pointer-events:none;
-  }
-  .dash-fab-wrapper *{pointer-events:auto;}
-  .dash-fab-menu{
-    display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:12px;
-    opacity:0;visibility:hidden;transform:translateY(16px) scale(0.94);
-    transition:opacity 0.22s cubic-bezier(0.16,1,0.3,1),transform 0.22s cubic-bezier(0.16,1,0.3,1),visibility 0.22s;
-  }
-  .dash-fab-wrapper.open .dash-fab-menu{
-    opacity:1;visibility:visible;transform:translateY(0) scale(1);
-  }
-  .dash-fab-item{
-    display:inline-flex;align-items:center;gap:10px;
-    background:#FFFFFF;color:var(--ink);
-    padding:8px 18px 8px 10px;
-    border-radius:999px;
-    border:1.5px solid var(--border);
-    box-shadow:0 8px 24px rgba(43,27,24,0.16);
-    cursor:pointer;outline:none;
-    font-family:inherit;font-size:14px;font-weight:700;
-    white-space:nowrap;
-    transition:transform 0.15s ease,background 0.15s ease,box-shadow 0.15s ease,border-color 0.15s ease;
-    user-select:none;-webkit-tap-highlight-color:transparent;
-  }
-  .dash-fab-item:active{
-    transform:scale(0.96);background:var(--primary-tint);
-  }
-  .dash-fab-ic{
-    width:34px;height:34px;border-radius:50%;
-    background:var(--primary-tint);color:var(--primary);
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    transition:background 0.15s ease,color 0.15s ease;
-  }
-  .dash-fab-ic svg{width:18px;height:18px;}
-  .dash-fab-text{
-    font-size:13.5px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;
-  }
-  .dash-fab-main-btn{
-    width:58px;height:58px;border-radius:50%;background:var(--primary);color:var(--white);border:none;
-    box-shadow:0 6px 22px rgba(218,90,71,0.45);display:flex;align-items:center;justify-content:center;
-    cursor:pointer;outline:none;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),background 0.2s ease,box-shadow 0.2s ease;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .dash-fab-main-btn:hover{background:var(--primary-dark);box-shadow:0 8px 26px rgba(218,90,71,0.55);}
-  .dash-fab-main-btn:active{transform:scale(0.92);}
-  .dash-fab-main-btn svg{width:28px;height:28px;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);}
-  .dash-fab-wrapper.open .dash-fab-main-btn svg{transform:rotate(45deg);}
-  .dash-fab-backdrop{
-    position:fixed;inset:0;background:rgba(43,27,24,0.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:98;display:none;
-  }
-  .dash-fab-backdrop.active{display:block;}
 
 
 
@@ -1863,6 +1809,7 @@ async function saveCompetitionMarksAndResults(compId, marks){
 
 /* ============================= RENDER: SHELL ============================= */
 function iconSvg(name){
+  if(name==='star') return '';
   const icons = {
     home:'<path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v8.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V10" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     people:'<circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M3.5 19c.7-3.2 3-5 5.5-5s4.8 1.8 5.5 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="17" cy="9" r="2.3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M15.2 14.2c2 .2 3.7 1.8 4.3 4.3" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>',
@@ -2021,6 +1968,7 @@ function renderHeader(){
 }
 
 function renderNav(){
+  if(!APP.auth) return;
   if(APP.auth.role==='parent'){
     const items = [
       {id:'p-dashboard', label:'My Progress', icon:'home'},
@@ -2037,8 +1985,8 @@ function renderNav(){
   }
   const items = [
     {id:'dashboard', label:'Dashboard', icon:'home'},
-    {id:'students', label:'Students', icon:'people'},
     {id:'today', label:'Today', icon:'today'},
+    {id:'students', label:'Students', icon:'people'},
     {id:'competitions', label:'Competitions', icon:'trophy'},
     {id:'reports', label:'Reports', icon:'reports'},
     {id:'settings', label:'Settings', icon:'settings'}
@@ -2104,67 +2052,12 @@ function renderDashboard(){
     '<div class="dstat"><div class="stat-num num">'+notReported+'</div><div class="stat-label">Not Reported</div></div>'+
     '<div class="dstat"><div class="stat-num num">'+reported+'</div><div class="stat-label">Reported</div></div>'+
   '</div>'+
-  (can('records') ? (
-    '<div class="dash-fab-wrapper" id="dash-fab-wrap">'+
-      '<div class="dash-fab-menu">'+
-        '<button class="dash-fab-item" onclick="toggleDashFab(false);openPickStudentModal(\'daily\');">'+
-          '<span class="dash-fab-ic">'+iconSvg('today')+'</span>'+
-          '<span class="dash-fab-text">Today\'s Record</span>'+
-        '</button>'+
-        '<button class="dash-fab-item" onclick="toggleDashFab(false);openPickStudentModal(\'achievement\');">'+
-          '<span class="dash-fab-ic">'+iconSvg('star')+'</span>'+
-          '<span class="dash-fab-text">Stars</span>'+
-        '</button>'+
-        '<button class="dash-fab-item" onclick="toggleDashFab(false);openPickStudentModal(\'tally\');">'+
-          '<span class="dash-fab-ic">'+iconSvg('tally')+'</span>'+
-          '<span class="dash-fab-text">Tallies</span>'+
-        '</button>'+
-      '</div>'+
-      '<button class="dash-fab-main-btn" onclick="toggleDashFab()" aria-label="Quick Actions">'+
-        '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'+
-      '</button>'+
-    '</div>'+
-    '<div class="dash-fab-backdrop" id="dash-fab-backdrop" onclick="toggleDashFab(false);"></div>'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  ) : '');
+  (can('records') ? '<div class="quick-actions">'+
+    '<button class="qa-btn wide" onclick="openPickStudentModal(\'daily\')"><div class="qa-ic">'+iconSvg('today')+'</div><span>Today\'s Record</span></button>'+
+    '<button class="qa-btn" onclick="openPickStudentModal(\'achievement\')"><span>Stars</span></button>'+
+    '<button class="qa-btn" onclick="openPickStudentModal(\'tally\')"><div class="qa-ic">'+iconSvg('tally')+'</div><span>Tallies</span></button>'+
+  '</div>' : '');
 }
-
-function toggleDashFab(forceState){
-  const wrap = document.getElementById('dash-fab-wrap');
-  const bd = document.getElementById('dash-fab-backdrop');
-  if(!wrap) return;
-  const isOpen = (forceState !== undefined) ? !!forceState : !wrap.classList.contains('open');
-  if(isOpen){
-    wrap.classList.add('open');
-    if(bd) bd.classList.add('active');
-  } else {
-    wrap.classList.remove('open');
-    if(bd) bd.classList.remove('active');
-  }
-}
-
-
-
-
-
 
 function dashGreetingName(){
   const a = APP.auth || {};
@@ -2200,7 +2093,7 @@ const progLabel = isDoura ? ('Doura '+(prog.completed||0)+'  \u00B7  '+esc(juzLa
 '<div class="row-sub">'+esc(s.batch||'-')+'  \u00B7  '+progLabel+'</div>'+
     '</div>'+
     '<div class="row-end">'+
-      '<div class="badge stars" title="Stars Earned in '+fmtMonthDisplay(monthStr)+'">'+iconSvg('star')+' '+stats.totalStars+'</div><br/>'+
+      '<div class="badge stars" title="Stars Earned in '+fmtMonthDisplay(monthStr)+'">'+stats.totalStars+' Stars</div><br/>'+
       '<div class="badge tallies" style="margin-top:5px;" title="Tallies in '+fmtMonthDisplay(monthStr)+'">'+stats.talliesGiven+' tallies</div>'+
     '</div>'+
   '</div>';
@@ -2351,7 +2244,7 @@ function openEntriesManager(date, studentId){
         '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'+
           '<div style="min-width:0;"><div class="row-title">'+esc(st?st.name:'Unknown student')+'</div>'+
           '<div class="row-sub">'+(kind==='achievements'?'Star':'Tally')+' · '+fmtDateDisplay(e.date)+'</div></div>'+
-          '<span class="badge '+(kind==='achievements'?'stars':'tallies')+'">'+(kind==='achievements'?'+'+qty+' ★':'+'+qty)+'</span>'+
+          '<span class="badge '+(kind==='achievements'?'stars':'tallies')+'">'+(kind==='achievements'?'+'+qty+'':'+'+qty)+'</span>'+
         '</div>'+
         (e.reason?'<div class="subtle" style="margin-top:6px;">'+esc(e.reason)+'</div>':'')+
         '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">'+
@@ -2482,7 +2375,7 @@ function openDayReportModal(studentId, date){
   }).join('')+'</div>' : '<div class="subtle">No tallies this day.</div>';
 
   const achHtml = ach.length ? '<div class="list">'+ach.map(function(a){
-    return '<div class="kv"><span class="k">'+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+' ★</span></div>';
+    return '<div class="kv"><span class="k">'+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+'</span></div>';
   }).join('')+'</div>' : '<div class="subtle">No achievements this day.</div>';
 
   openModal(
@@ -2551,21 +2444,10 @@ function renderStudentReport(){
   '</div>'+
   (APP.reportMode==='range' ?
     '<div class="card" style="margin-bottom:14px;padding:12px;">'+
-      '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Custom Date Range</div>'+
-      '<div class="field-row" style="margin-bottom:8px;gap:8px;">'+
-        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="rep-from" value="'+esc(APP.reportFromDate)+'" onchange="APP.reportFromDate=this.value;"></div>'+
-        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="rep-to" value="'+esc(APP.reportToDate)+'" onchange="APP.reportToDate=this.value;"></div>'+
+      '<div class="field-row" style="margin-bottom:0;gap:8px;">'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="rep-from" value="'+esc(APP.reportFromDate)+'" onchange="APP.reportFromDate=this.value;if(APP.reportToDate)applyRange(\'student\');"></div>'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="rep-to" value="'+esc(APP.reportToDate)+'" onchange="APP.reportToDate=this.value;applyRange(\'student\');"></div>'+
       '</div>'+
-
-
-
-
-
-
-
-
-
-      '<button type="button" class="btn small block" onclick="applyRange(\'student\')" style="font-weight:700;padding:10px;background:var(--primary);color:#fff;">'+iconSvg('reports')+' Generate Report</button>'+
     '</div>' :
    APP.reportMode==='monthly' ?
     '<div class="field" style="margin-bottom:14px;"><label>Month</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepMonth(-1,\'student\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="month" value="'+esc(APP.reportMonth)+'" onchange="APP.reportMonth=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepMonth(1,\'student\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>' :
@@ -2621,8 +2503,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
   let dateRows = '';
   let recordedDays = 0;
   let recitedDays = 0;
-  let absentDays = 0;
-  let leaveDays = 0;
+  const statusCounts = {}; ENTRY_STATUS_OPTIONS.forEach(function(st){ statusCounts[st] = 0; });
   let unrecordedDays = 0;
 
   allDates.forEach(function(d){
@@ -2640,8 +2521,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       const norm = normStatus(dr.status);
       statusDisplay = statusBadge(dr.status);
       if(norm === 'Recited') recitedDays++;
-      else if(norm === 'Sick' || norm === 'Home' || norm === 'Leave') leaveDays++;
-      else absentDays++;
+      statusCounts[norm] = (statusCounts[norm] || 0) + 1;
 
       if(dr.performance !== undefined && dr.performance !== null && dr.performance !== '') {
         scoreDisplay = '<b>' + dr.performance + '/10</b>';
@@ -2675,7 +2555,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     let extraBadges = '';
     if(dAch.length){
       const totalStars = dAch.reduce(function(sum, a){ return sum + (Number(a.stars) || 0); }, 0);
-      if(totalStars > 0) extraBadges += '<span class="badge stars" style="margin-right:4px;">\u2605 ' + totalStars + '</span>';
+      if(totalStars > 0) extraBadges += '<span class="badge stars" style="margin-right:4px;">' + totalStars + '</span>';
     }
     if(dTallies.length){
       const totalTly = dTallies.reduce(function(sum, t){ return sum + (Number(t.count) || 0); }, 0);
@@ -2701,12 +2581,12 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
   '<div class="card" style="margin-bottom:14px;">'+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:6px;">'+
 (hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+'  \u00B7  '+esc(periodLabel)+' ('+totalPeriodDays+' Working Days)</div></div>')+
-      '<div style="display:flex;gap:6px;"><span class="badge success">'+recitedDays+' Recited</span><span class="badge warn">'+(absentDays+leaveDays)+' Absent/Leave</span>'+(unrecordedDays?'<span class="badge st-unrecorded">'+unrecordedDays+' Unrecorded</span>':'')+'</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+ENTRY_STATUS_OPTIONS.map(function(st){ const c = statusCounts[st]||0; return c > 0 ? ('<span class="badge '+(STATUS_CLASS[st]||'done')+'>'+c+' '+st+'</span>') : ''; }).join('')+(unrecordedDays?'<span class="badge st-unrecorded">'+unrecordedDays+' Unrecorded</span>':'')+'</div>'+
     '</div>'+
     '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Performance Summary</div>'+
     '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(3,1fr);">'+
       '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Score</div></div>'+
-      '<div class="stat-mini"><div class="n">\u2605 '+stats.totalStars+'</div><div class="l">2. Total Stars Earned</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.totalStars+'</div><div class="l">2. Stars Earned</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Tallies</div></div>'+
       '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">4. Days Recited ('+attendanceRate+'%)</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.newLearnPages+' pg</div><div class="l">5. New Learn ('+stats.newLearnScore+' pts)</div></div>'+
@@ -2748,7 +2628,7 @@ function yearlyReportTable(s, yearOverride){
       '<td><b>'+monthNames[m-1]+'</b></td>'+
       '<td>'+st.newLearnPages+'</td>'+
       '<td>'+st.talliesGiven+'</td>'+
-      '<td>\u2605 '+st.totalStars+'</td>'+
+      '<td>'+st.totalStars+'</td>'+
       '<td>'+st.points+'</td>'+
     '</tr>';
   }
@@ -2760,10 +2640,10 @@ function yearlyReportTable(s, yearOverride){
     rows+
   '</table></div>'+
   '<div class="card">'+
-    '<div class="section-title small">Year Totals ('+esc(year)+')</div>'+
+    '<div class="section-title small">Year Summary ('+esc(year)+')</div>'+
     '<div class="kv"><span class="k">New Learn Pages</span><span class="v"><b>'+yearStats.newLearnPages+'</b></span></div>'+
     '<div class="kv"><span class="k">Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
-    '<div class="kv"><span class="k">Stars Earned</span><span class="v"><b>\u2605 '+yearStats.totalStars+'</b></span></div>'+
+    '<div class="kv"><span class="k">Stars Earned</span><span class="v"><b>'+yearStats.totalStars+'</b></span></div>'+
     '<div class="kv"><span class="k">Score</span><span class="v"><b>'+yearStats.points+'</b></span></div>'+
   '</div>';
 }
@@ -2801,7 +2681,7 @@ function renderOverviewReport(){
       '<td><b>'+esc(s.name)+'</b></td>'+
       '<td>'+esc(s.batch||'-')+'</td>'+
       '<td><b>'+st.points+'</b></td>'+
-      '<td>\u2605 '+st.totalStars+'</td>'+
+      '<td>'+st.totalStars+'</td>'+
       '<td>'+st.talliesGiven+'</td>'+
       '<td>'+st.newLearnPages+' pg</td>'+
       '<td>'+st.oldRevisionPages+' pg</td>'+
@@ -2817,21 +2697,10 @@ function renderOverviewReport(){
   '</div>'+
   (APP.overviewMode==='range' ?
     '<div class="card" style="margin-bottom:14px;padding:12px;">'+
-      '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Custom Date Range</div>'+
-      '<div class="field-row" style="margin-bottom:8px;gap:8px;">'+
-        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="ov-from" value="'+esc(APP.overviewFromDate)+'" onchange="APP.overviewFromDate=this.value;"></div>'+
-        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="ov-to" value="'+esc(APP.overviewToDate)+'" onchange="APP.overviewToDate=this.value;"></div>'+
+      '<div class="field-row" style="margin-bottom:0;gap:8px;">'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="ov-from" value="'+esc(APP.overviewFromDate)+'" onchange="APP.overviewFromDate=this.value;if(APP.overviewToDate)applyRange(\'overview\');"></div>'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="ov-to" value="'+esc(APP.overviewToDate)+'" onchange="APP.overviewToDate=this.value;applyRange(\'overview\');"></div>'+
       '</div>'+
-
-
-
-
-
-
-
-
-
-      '<button type="button" class="btn small block" onclick="applyRange(\'overview\')" style="font-weight:700;padding:10px;background:var(--primary);color:#fff;">'+iconSvg('reports')+' Generate Report</button>'+
     '</div>' :
    APP.overviewMode==='monthly' ?
     '<div class="field-row" style="margin-bottom:14px;"><div class="field" style="flex:1;"><label>Month</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepMonth(-1,\'overview\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="month" value="'+esc(APP.overviewMonth)+'" onchange="APP.overviewMonth=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepMonth(1,\'overview\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div></div>' :
@@ -2958,7 +2827,7 @@ function renderCompetitionsView(){
   (monthComps.length? '<div class="list" style="margin-bottom:20px;">'+monthComps.map(compRow).join('')+'</div>' : '<div class="subtle" style="margin-bottom:20px;">No competitions this month.</div>')+
   '<div class="divider"></div>'+
   '<div class="section-title small">All Past &amp; Upcoming Competitions</div>'+
-  (allComps.length? '<div class="list">'+allComps.map(compRow).join('')+'</div>' : '<div class="empty">'+iconSvg('star')+'<p>No competitions yet.</p></div>');
+  (allComps.length? '<div class="list">'+allComps.map(compRow).join('')+'</div>' : '<div class="empty">'+iconSvg('trophy')+'<p>No competitions yet.</p></div>');
 }
 
 function openAddCompetitionModal(){
@@ -3007,7 +2876,7 @@ function openCompetitionDetailModal(compId){
 
   const rows = results.map(function(r){
     const s = byId(APP.students, r.studentId);
-    return '<tr><td>'+medalFor(r.rank)+' '+esc(s?s.name:'—')+'</td><td>'+r.m1+'</td><td>'+r.m2+'</td><td>'+r.m3+'</td><td><b>'+r.total+'</b></td><td>'+(COMPETITION_STARS[r.rank]?('+'+COMPETITION_STARS[r.rank]+' ★'):'—')+'</td></tr>';
+    return '<tr><td>'+medalFor(r.rank)+' '+esc(s?s.name:'—')+'</td><td>'+r.m1+'</td><td>'+r.m2+'</td><td>'+r.m3+'</td><td><b>'+r.total+'</b></td><td>'+(COMPETITION_STARS[r.rank]?('+'+COMPETITION_STARS[r.rank]+''):'—')+'</td></tr>';
   }).join('');
 
   openModal(
@@ -3015,7 +2884,7 @@ function openCompetitionDetailModal(compId){
     '<button class="modal-close" onclick="requestCloseModal()">'+iconSvg('close')+'</button></div>'+
     (hasMarks? (
       '<div class="section-title small">Results</div>'+
-      '<div class="table-scroll" style="margin-bottom:14px;"><table><tr><th>Competitor</th><th>'+cols[0]+'</th><th>'+cols[1]+'</th><th>'+cols[2]+'</th><th>Total</th><th>Stars</th></tr>'+rows+'</table></div>'
+      '<div class="table-scroll" style="margin-bottom:14px;"><table><tr><th>Competitor</th><th>'+cols[0]+'</th><th>'+cols[1]+'</th><th>'+cols[2]+'</th><th>Score</th><th>Stars</th></tr>'+rows+'</table></div>'
     ) : (
       '<div class="banner">Marks have not been entered yet.</div>'
     ))+
@@ -3070,7 +2939,7 @@ function renderSettingsView(){
   return ''+
   '<div class="section-title">Settings</div>'+
   '<div class="card" style="margin-bottom:14px;">'+
-    '<div class="kv"><span class="k">Total Students</span><span class="v">'+VS().length+'</span></div>'+
+    '<div class="kv"><span class="k">Students</span><span class="v">'+VS().length+'</span></div>'+
     '<div class="kv"><span class="k">Competitions Logged</span><span class="v">'+APP.competitions.length+'</span></div>'+
     '<div class="kv"><span class="k">Daily Records Logged</span><span class="v">'+APP.dailyRecords.length+'</span></div>'+
     '<div class="kv"><span class="k">Storage Mode</span><span class="v" style="color:var(--primary-text);">'+storageLabel+'</span></div>'+
@@ -3081,7 +2950,7 @@ function renderSettingsView(){
     '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
       '<button class="btn small outline" onclick="exportJsonBackup()">'+iconSvg('download')+' Export JSON Backup</button>'+
       '<button class="btn small outline" onclick="triggerRestoreFilePicker()">'+iconSvg('upload')+' Restore Backup</button>'+
-      '<button class="btn small outline" onclick="loadDemoData()">'+iconSvg('star')+' Load Demo Data</button>'+
+      '<button class="btn small outline" onclick="loadDemoData()">Load Demo Data</button>'+
       '<button class="btn small danger" onclick="confirmResetAllData()">'+iconSvg('trash')+' Reset Data</button>'+
     '</div>'+
   '</div>'+
@@ -3094,8 +2963,8 @@ function renderSettingsView(){
     '<b>Rules Summary</b><br/><br/>'+
     '• <b>Hifz Students:</b> Current Juz is set automatically from New Learn sessions (e.g. Juz 5, pages 15–17 → Juz 5 - Pg 17). Every Juz has 20 pages; a Juz completes when page 20 is recited and marked Clear. Admission Starting Juz is fixed.<br/>'+
     '• <b>Doura Students:</b> Recitations track through Juz 1–30 (20 pages each). When Juz 30 is completed, the Doura counter increases automatically and the next Doura restarts from Juz 1.<br/>'+
-    '• <b>Star–Tally Offset:</b> 1 Star cancels 2 Tallies automatically. Total Stars Earned is preserved permanently.<br/>'+
-    '• <b>Competitions:</b> 🥇 1st Place = +5★ 🥈 2nd Place = +3★ 🥉 3rd Place = +2★ — automatically awarded into the Star Board above.<br/>'+
+    '• <b>Star–Tally Offset:</b> 1 Star cancels 2 Tallies automatically. Stars Earned is preserved permanently.<br/>'+
+    '• <b>Competitions:</b> 🥇 1st Place = +5🥈 2nd Place = +3🥉 3rd Place = +2— automatically awarded into the Star Board above.<br/>'+
     '• "Not Recited" automatically adds 2 Tallies; "Not Reported" adds 5 Tallies.'+
   '</div>';
 }
@@ -3319,17 +3188,17 @@ function renderParentDashboard(){
     '<span style="background:var(--hero-soft);color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap;">'+esc(progressBadge)+'</span>'+
   '</div>'+
   '<div class="grid-2" style="margin-bottom:14px;">'+
-    '<div class="stat-card"><div class="stat-num num" style="font-size:20px;">★ '+stats.starsRemaining+'</div><div class="stat-label">Stars Remaining ('+stats.totalStars+' Earned)</div></div>'+
+    '<div class="stat-card"><div class="stat-num num" style="font-size:20px;">'+stats.starsRemaining+'</div><div class="stat-label">Stars Remaining ('+stats.totalStars+' Earned)</div></div>'+
     '<div class="stat-card"><div class="stat-num num" style="font-size:20px;">'+stats.talliesRemaining+'</div><div class="stat-label">Active Tallies ('+stats.talliesCancelled+' Cancelled)</div></div>'+
     '<div class="stat-card today-hl" style="grid-column:1/3;"><div class="stat-num num'+(todayRec && normStatus(todayRec.status)==='Recited' ? ' st-recited' : '')+'" style="font-size:18px;">'+(todayRec? esc(normStatus(todayRec.status)) : 'Pending')+'</div><div class="stat-label"><b>Today</b> · '+fmtDateDisplay(today)+'</div></div>'+
   '</div>'+
   '<div class="card" style="margin-bottom:14px;">'+
     '<div class="section-title small">Quran Progress Tracking</div>'+
     progressRows+
-    '<div class="kv"><span class="k">Total New Learn Pages</span><span class="v">'+stats.newLearnPages+' pages</span></div>'+
-    '<div class="kv"><span class="k">Total Old Revision Pages</span><span class="v">'+stats.oldRevisionPages+' pages</span></div>'+
+    '<div class="kv"><span class="k">New Learn Pages</span><span class="v">'+stats.newLearnPages+' pages</span></div>'+
+    '<div class="kv"><span class="k">Revision Pages</span><span class="v">'+stats.oldRevisionPages+' pages</span></div>'+
     
-    '<div class="kv"><span class="k">Total Recitation Sessions</span><span class="v">'+stats.sessionsCount+' sessions</span></div>'+
+    '<div class="kv"><span class="k">Recitation Sessions</span><span class="v">'+stats.sessionsCount+' sessions</span></div>'+
   '</div>'+
   '<div class="card" style="margin-bottom:18px;">'+
     '<div class="section-title small">This Month\'s Performance ('+fmtMonthDisplay(currentMonthStr())+')</div>'+
@@ -3413,21 +3282,10 @@ function renderParentProfile(){
   '</div>'+
   (APP.parentReportMode==='range' ?
     '<div class="card" style="margin-bottom:14px;padding:12px;">'+
-      '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Custom Date Range</div>'+
-      '<div class="field-row" style="margin-bottom:8px;gap:8px;">'+
-        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="pr-from" value="'+esc(APP.parentReportFromDate)+'" onchange="APP.parentReportFromDate=this.value;"></div>'+
-        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="pr-to" value="'+esc(APP.parentReportToDate)+'" onchange="APP.parentReportToDate=this.value;"></div>'+
+      '<div class="field-row" style="margin-bottom:0;gap:8px;">'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">From Date</label><input type="date" id="pr-from" value="'+esc(APP.parentReportFromDate)+'" onchange="APP.parentReportFromDate=this.value;if(APP.parentReportToDate)applyRange(\'parent\');"></div>'+
+        '<div class="field" style="flex:1;margin:0;"><label style="font-size:11.5px;font-weight:700;">To Date</label><input type="date" id="pr-to" value="'+esc(APP.parentReportToDate)+'" onchange="APP.parentReportToDate=this.value;applyRange(\'parent\');"></div>'+
       '</div>'+
-
-
-
-
-
-
-
-
-
-      '<button type="button" class="btn small block" onclick="applyRange(\'parent\')" style="font-weight:700;padding:10px;background:var(--primary);color:#fff;">'+iconSvg('reports')+' Generate Report</button>'+
     '</div>' :
    APP.parentReportMode==='monthly' ?
     '<div class="field" style="margin-bottom:14px;"><label>Month</label><div style="display:flex;gap:6px;align-items:center;"><button type="button" class="btn small outline" onclick="stepMonth(-1,\'parent\')" style="padding:7px 11px;min-width:38px;">&larr;</button><input type="month" value="'+esc(APP.parentReportMonth)+'" onchange="APP.parentReportMonth=this.value;render();" style="flex:1;"><button type="button" class="btn small outline" onclick="stepMonth(1,\'parent\')" style="padding:7px 11px;min-width:38px;">&rarr;</button></div></div>' :
@@ -3524,13 +3382,13 @@ function renderParentCompetitions(){
         '<div class="kv"><span class="k">'+cols[0]+'</span><span class="v">'+h.result.m1+'</span></div>'+
         '<div class="kv"><span class="k">'+cols[1]+'</span><span class="v">'+h.result.m2+'</span></div>'+
         '<div class="kv"><span class="k">'+cols[2]+'</span><span class="v">'+h.result.m3+'</span></div>'+
-        '<div class="kv"><span class="k">Result</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+' ★':'')+'</span></div>'
+        '<div class="kv"><span class="k">Result</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+'':'')+'</span></div>'
       ) : '<div class="subtle">Marks not entered yet.</div>')+
     '</div>';
   }).join('');
   return ''+
   '<div class="section-title">My Competitions</div>'+
-  (hist.length? rows : '<div class="empty">'+iconSvg('star')+'<p>No competitions yet.</p></div>');
+  (hist.length? rows : '<div class="empty">'+iconSvg('trophy')+'<p>No competitions yet.</p></div>');
 }
 
 /* ============================= DATA BACKUP / RESTORE / DEMO ============================= */
@@ -3763,7 +3621,7 @@ function shareReportWhatsApp(){
            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
            'ðŸ“Š *Performance Summary:*\n' +
            '\u2022 Score: *' + stats.points + '*\n' +
-           '\u2022 Total Stars Earned: *' + stats.totalStars + '*\n' +
+           '\u2022 Stars Earned: *' + stats.totalStars + '*\n' +
            '\u2022 Tallies: *' + stats.talliesGiven + '*\n' +
            '\u2022 New Learn: *' + stats.newLearnPages + ' pages (' + stats.newLearnScore + ' pts)*\n' +
            
@@ -3788,7 +3646,7 @@ function shareReportWhatsApp(){
     const list = filteredOverviewStudents();
     text = 'ðŸ“– *Illuminated Hearts - All Students Report*\n' +
            'ðŸ“… *Period:* ' + period + '\n' +
-           'ðŸ‘¥ *Total Students:* ' + list.length + '\n' +
+           'ðŸ‘¥ *Students:* ' + list.length + '\n' +
            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n';
     list.forEach(function(s, idx){
       const stats = computeStats(s.id, filterFn);
@@ -3871,12 +3729,12 @@ function exportStudentCsv(){
     ['Batch', s.batch||''],
     ['Period', period],
     ['Score', stats.points],
-    ['Total Stars Earned', stats.totalStars],
+    ['Stars Earned', stats.totalStars],
     ['Tallies', stats.talliesGiven],
     ['New Learn Pages', stats.newLearnPages],
 
     ['Old Revision Pages', stats.oldRevisionPages],
-    ['Total Pages Recited', stats.totalPages],
+    ['Pages Recited', stats.totalPages],
     ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length + ' working days'],
     ['',''],
     ['--- DAILY STATUS BREAKDOWN ---','','','','','','',''],
@@ -3919,7 +3777,7 @@ function exportOverviewCsv(){
     periodDays = getWorkingDatesInRange(period+'-01', period+'-'+String(lastDay).padStart(2,'0')).length;
   }
   const list = filteredOverviewStudents();
-  const rows = [['Student','Class','Score','Total Stars Earned','Tallies','New Learn Pages','Old Revision Pages','Days Recited','Total Days']];
+  const rows = [['Student','Class','Score','Stars Earned','Tallies','New Learn Pages','Old Revision Pages','Days Recited','Days']];
   list.forEach(function(s){
     const st = computeStats(s.id, filterFn);
     rows.push([
@@ -4210,13 +4068,13 @@ function studentProfileDetailHtml(studentId, isAdmin){
     '<div class="kv"><span class="k">Score</span><span class="v">'+stats.points+'</span></div>'+
     '<div class="kv"><span class="k">New Learn / Old Revision Pages</span><span class="v">'+stats.newLearnPages+' / '+stats.oldRevisionPages+'</span></div>'+
     
-    '<div class="kv"><span class="k">Total Recitation Sessions</span><span class="v">'+stats.sessionsCount+'</span></div>'+
+    '<div class="kv"><span class="k">Recitation Sessions</span><span class="v">'+stats.sessionsCount+'</span></div>'+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Daily Records</div>'+
     (drHist.length? '<div class="list">'+ drHist.map(function(r){ const isT = r.date===todayStr(), rec = normStatus(r.status)==='Recited'; return '<div class="kv'+(isT?' today-hl':'')+'"><span class="k">'+(isT?'<b>'+fmtDateDisplay(r.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(r.date))+' — '+(rec?'<span class="st-recited">Recited</span>':esc(normStatus(r.status)))+'</span><span class="v">'+r.performance+'/10</span></div>'; }).join('') +'</div>' : '<div class="subtle">No records yet.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Achievements</div>'+
-    (achHist.length? '<div class="list">'+ achHist.map(function(a){ return '<div class="kv"><span class="k">'+fmtDateDisplay(a.date)+' — '+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+' ★</span></div>'; }).join('') +'</div>' : '<div class="subtle">No achievements yet.</div>')+
+    (achHist.length? '<div class="list">'+ achHist.map(function(a){ return '<div class="kv"><span class="k">'+fmtDateDisplay(a.date)+' — '+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+'</span></div>'; }).join('') +'</div>' : '<div class="subtle">No achievements yet.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Tallies</div>'+
     (talHist.length? '<div class="list">'+ talHist.map(function(t){ return '<div class="kv"><span class="k">'+fmtDateDisplay(t.date)+' — '+esc(t.reason||t.type)+'</span><span class="v">+'+t.count+' ('+esc(t.type)+')</span></div>'; }).join('') +'</div>' : '<div class="subtle">No tallies yet.</div>')+
@@ -4224,7 +4082,7 @@ function studentProfileDetailHtml(studentId, isAdmin){
     '<div class="section-title small">Competitions</div>'+
     (compHist.length? '<div class="list">'+ compHist.map(function(h){
       const rankLabel = h.result ? (h.result.rank===1?'🥇 1st':h.result.rank===2?'🥈 2nd':h.result.rank===3?'🥉 3rd':h.result.rank+'th') : '—';
-      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+' Competition</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+' ★':'')+'</span></div>';
+      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+' Competition</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+'':'')+'</span></div>';
     }).join('') +'</div>' : '<div class="subtle">No competitions yet.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Session &amp; Leave Requests</div>'+
@@ -4272,7 +4130,7 @@ function openStudentProfile(studentId){
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
       '<button class="btn small outline" onclick="openStudentFormModal(\''+s.id+'\')">'+iconSvg('edit')+' Edit</button>'+
       '<button class="btn small outline" onclick="openDailyEntryModal(\''+s.id+'\',\''+APP.todayDate+'\')">'+iconSvg('today')+' Today\'s Entry</button>'+
-              '<button class="btn small outline" onclick="openAchievementModal(\''+s.id+'\')">'+iconSvg('star')+' Star</button>'+
+              '<button class="btn small outline" onclick="openAchievementModal(\''+s.id+'\')">Star</button>'+
       '<button class="btn small outline" onclick="openTallyModal(\''+s.id+'\')">'+iconSvg('tally')+' Tally</button>'+
       (can('records') ? '<button class="btn small outline" onclick="openEntriesManager(null,\''+s.id+'\')">'+iconSvg('trash')+' Manage Stars &amp; Tallies</button>' : '')+
     '</div>'+
