@@ -815,6 +815,25 @@ function douraCurrentDisplay(studentId){
   if(!s) return { whole:1, pages:0, completed:0 };
   return { whole:Number(s.douraJuzWhole)||1, pages:Number(s.douraJuzPages)||0, completed:Number(s.completedDouras)||0 };
 }
+function lastRecordedSessionDisplay(studentId){
+  const recs = APP.dailyRecords.filter(function(r){ return r.studentId === studentId && r.session && String(r.session).trim(); });
+  if(recs.length){
+    recs.sort(function(a, b){
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+    return String(recs[0].session).trim();
+  }
+  const sess = APP.sessions.filter(function(x){ return x.studentId === studentId; });
+  if(sess.length){
+    sess.sort(function(a, b){
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return (b.sessionNo || 0) - (a.sessionNo || 0);
+    });
+    return sess[0].sessionNo ? ('Session ' + sess[0].sessionNo) : (sess[0].title || sess[0].type || 'Session');
+  }
+  return '—';
+}
 function uniqueBatches(){
   const set = new Set();
   VS().forEach(s=>{ if(s.batch) set.add(s.batch); });
@@ -833,16 +852,36 @@ function computeStats(studentId, filterFn){
   filterFn = filterFn || function(){ return true; };
   const dr = APP.dailyRecords.filter(r=>r.studentId===studentId && filterFn(r.date));
   const points = dr.reduce((s,r)=> s + (Number(r.performance !== undefined ? r.performance : r.score)||0), 0);
+  
+  // Manual / Achievement stars
   const ach = APP.achievements.filter(a=>a.studentId===studentId && filterFn(a.date));
   const achStars = ach.reduce((s,a)=> s + (Number(a.stars)||0), 0);
+  
+  // Competition stars in this period
+  let compStars = 0;
+  APP.competitions.forEach(function(c){
+    if(filterFn(c.date) && c.results && c.results[studentId] && c.results[studentId].starsAwarded){
+      compStars += Number(c.results[studentId].starsAwarded) || 0;
+    }
+  });
+  const manualStars = achStars + compStars;
+
+  // Performance stars: 50 points = 3 stars (kept with performance score, not added into manual stars)
   const perfStars = Math.floor(points / 50) * 3;
-  const totalStars = achStars + perfStars;
+  
+  // Total stars for clearing tallies
+  const totalStars = manualStars + perfStars;
+
+  // Tallies in this period ("gotted tally at that month")
   const tal = APP.tallies.filter(t=>t.studentId===studentId && filterFn(t.date));
   const talliesGiven = tal.reduce((s,t)=> s + (Number(t.count)||0), 0);
-  const starsUsed = Math.min(totalStars, Math.floor(talliesGiven/2));
-  const talliesCancelled = starsUsed*2;
-  const starsRemaining = totalStars - starsUsed;
-  const talliesRemaining = Math.max(0, talliesGiven - talliesCancelled);
+
+  // "clear tally with any star like perofmance score star or manually star" - 1 star clears 1 tally
+  const talliesCleared = Math.min(talliesGiven, totalStars);
+  const talliesRemaining = Math.max(0, talliesGiven - talliesCleared);
+  const starsRemaining = Math.max(0, totalStars - talliesCleared);
+  const starsUsed = talliesCleared;
+  const talliesCancelled = talliesCleared;
 
   const sess = APP.sessions.filter(s=>s.studentId===studentId && filterFn(s.date));
   let newLearnPages=0, oldRevisionPages=0, totalPages=0;
@@ -864,12 +903,19 @@ function computeStats(studentId, filterFn){
   const avgDailyScore = dr.length ? (points / dr.length).toFixed(1) : '0.0';
 
   return {
-    points, perfStars, achStars, totalStars, starsEarned: totalStars, starsUsed, starsRemaining,
-    talliesGiven, totalTallies: talliesGiven, talliesCancelled, talliesRemaining,
+    studentId,
+    points, perfStars, achStars, compStars, manualStars, totalStars,
+    starsEarned: manualStars,
+    starsUsed, starsRemaining,
+    talliesGiven, totalTallies: talliesGiven, talliesCleared, talliesCancelled, talliesRemaining,
     newLearnPages, oldRevisionPages, totalPages,
     newLearnScore, oldRevisionScore, avgDailyScore,
-    sessionsCount: sess.length, statusCounts, dailyRecordsCount: dr.length,
-    achievementsCount: ach.length, talliesCount: tal.length
+    recitedCount,
+    dailyRecordsCount: dr.length,
+    sessionsCount: sess.length,
+    statusCounts,
+    achievementsCount: ach.length,
+    talliesCount: tal.length
   };
 }
 function competitionColumns(type){ return type==='Qirath' ? QIRATH_COMP_COLUMNS : HIFZ_COMP_COLUMNS; }
@@ -2115,18 +2161,17 @@ function filteredStudents(){
 function renderStudentCard(s, monthStr){
   const stats = computeStats(s.id, filterMonth(monthStr));
   const inactive = s.active===false;
-  const isDoura = s.studyType==='Doura';
-  const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
-const progLabel = isDoura ? ('Doura '+(prog.completed||0)+'  \u00B7  '+esc(juzLabel(prog))) : esc(juzLabel(prog));
+  const lastSess = lastRecordedSessionDisplay(s.id);
+  const sessLabel = 'Current Session: ' + esc(lastSess);
   return '<div class="row-card" onclick="openStudentProfile(\''+s.id+'\')">'+
     '<div class="avatar">'+esc(initials(s.name))+'</div>'+
     '<div class="row-main">'+
       '<div class="row-title">'+esc(s.name)+(inactive?' <span class="badge inactive">Inactive</span>':'')+'</div>'+
-'<div class="row-sub">'+esc(s.batch||'-')+'  \u00B7  '+progLabel+'</div>'+
+      '<div class="row-sub">'+esc(s.batch||'-')+'  \u00B7  '+sessLabel+'</div>'+
     '</div>'+
     '<div class="row-end">'+
-      '<div class="badge stars" title="Stars Earned in '+fmtMonthDisplay(monthStr)+'">'+stats.totalStars+' Stars</div><br/>'+
-      '<div class="badge tallies" style="margin-top:5px;" title="Tallies in '+fmtMonthDisplay(monthStr)+'">'+stats.talliesGiven+' tallies</div>'+
+      '<div class="badge stars" title="Score: '+stats.points+' in '+fmtMonthDisplay(monthStr)+'">'+stats.points+' pts'+(stats.perfStars ? ' ('+stats.perfStars+'★)' : '')+'</div><br/>'+
+      '<div class="badge tallies" style="margin-top:5px;" title="Remaining / Total Tallies in '+fmtMonthDisplay(monthStr)+'">'+stats.talliesRemaining+' / '+stats.talliesGiven+' tallies</div>'+
     '</div>'+
   '</div>';
 }
@@ -2640,10 +2685,11 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     '</div>'+
     '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Performance Summary</div>'+
     '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">'+
-      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Performance Score</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.totalStars+'</div><div class="l">2. Stars Earned</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Tallies</div></div>'+
-      '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">4. Days Recited ('+attendanceRate+'%)</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.points+(stats.perfStars ? ' <span style="font-size:11.5px;color:var(--primary);">('+stats.perfStars+' Stars)</span>' : '')+'</div><div class="l">1. Performance Score</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.manualStars+'</div><div class="l">2. Manual Stars</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Tallies Received</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">4. Tallies Remaining</div></div>'+
+      '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">5. Days Recited ('+attendanceRate+'%)</div></div>'+
     '</div>'+
     '<div class="divider"></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
@@ -2730,10 +2776,10 @@ function renderOverviewReport(){
     return '<tr onclick="APP.reportsTab=\'student\';APP.reportStudentId=\''+s.id+'\';APP.reportMode=APP.overviewMode;APP.reportFromDate=APP.overviewFromDate;APP.reportToDate=APP.overviewToDate;APP.reportMonth=APP.overviewMonth;APP.reportYear=APP.overviewYear;render();" style="cursor:pointer;" title="Click to view detailed date report for '+esc(s.name)+'">'+
       '<td><b>'+esc(s.name)+'</b></td>'+
       '<td>'+esc(s.batch||'-')+'</td>'+
-      '<td><b>'+st.points+'</b></td>'+
-      '<td>'+st.totalStars+'</td>'+
-      '<td>'+st.talliesGiven+'</td>'+
-                  '<td>'+recCount+' / '+periodDays+' d</td>'+
+      '<td><b>'+st.points+'</b>'+(st.perfStars ? ' <span class="subtle" style="font-size:11px;">('+st.perfStars+'★)</span>' : '')+'</td>'+
+      '<td>'+st.manualStars+'</td>'+
+      '<td>'+st.talliesRemaining+' / '+st.talliesGiven+'</td>'+
+      '<td>'+recCount+' / '+periodDays+' d</td>'+
     '</tr>';
   }).join('');
 
@@ -2764,7 +2810,7 @@ function renderOverviewReport(){
   '</div>'+
 '<div class="subtle" style="margin-bottom:8px;">'+list.length+' students in '+periodLabel+' ('+periodDays+' working days)  \u00B7  Click any student row to view full daily details</div>'+
   '<div class="table-scroll"><table>'+
-    '<thead><tr><th>Student</th><th>Class</th><th>Performance Score</th><th>Stars Earned</th><th>Tallies</th><th>Attendance</th></tr></thead>'+
+    '<thead><tr><th>Student</th><th>Class</th><th>Performance Score</th><th>Manual Stars</th><th>Remaining / Total Tallies</th><th>Attendance</th></tr></thead>'+
     '<tbody>'+(rows || '<tr><td colspan="6" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
   '</table></div>';
 }
@@ -3318,8 +3364,7 @@ function renderParentProfile(){
     '</div>'+
     '<div class="kv"><span class="k">Study Type</span><span class="v">'+esc(s.studyType||'Hifz')+'</span></div>'+
     '<div class="kv"><span class="k">Admission Date</span><span class="v">'+fmtDateDisplay(s.joiningDate)+'</span></div>'+
-    '<div class="kv"><span class="k">Admission Starting Juz</span><span class="v">Juz '+esc(s.currentJuz||'-')+'</span></div>'+
-    '<div class="kv"><span class="k">Current Juz</span><span class="v">'+esc(juzLabel(s.studyType==='Doura' ? douraCurrentDisplay(sid) : hifzCurrentDisplay(sid)))+'</span></div>'+
+    '<div class="kv"><span class="k">Current Session</span><span class="v"><b>'+esc(lastRecordedSessionDisplay(sid))+'</b></span></div>'+
     '<div class="kv"><span class="k">Login Username</span><span class="v">'+esc(s.loginUsername||'-')+'</span></div>'+
   '</div>'+
   '<div class="section-title small">Performance Reports</div>'+
@@ -3774,9 +3819,10 @@ function exportStudentCsv(){
     ['Student', s.name],
     ['Batch', s.batch||''],
     ['Period', period],
-    ['Performance Score', stats.points],
-    ['Stars Earned', stats.totalStars],
-    ['Tallies', stats.talliesGiven],
+    ['Performance Score', stats.points + (stats.perfStars ? ' ('+stats.perfStars+' Stars)' : '')],
+    ['Manual Stars', stats.manualStars],
+    ['Total Tallies Received', stats.talliesGiven],
+    ['Tallies Remaining', stats.talliesRemaining],
     ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length + ' working days'],
     ['',''],
     ['--- DAILY STATUS BREAKDOWN ---','','','','',''],
@@ -4073,58 +4119,62 @@ async function submitStudentForm(studentId, btnEl){
 function studentProfileDetailHtml(studentId, isAdmin){
   const s = byId(APP.students, studentId);
   if(!s) return '<div class="subtle">Student not found.</div>';
-  const stats = computeStats(studentId, filterAll());
+  const profMonth = APP.profileMonth || currentMonthStr();
+  const filterFn = filterMonth(profMonth);
+  const stats = computeStats(studentId, filterFn);
   const studyType = s.studyType || 'Hifz';
-  const drHist = APP.dailyRecords.filter(r=>r.studentId===studentId).sort(function(a,b){ return a.date<b.date?1:-1; }).slice(0,8);
-  const achHist = APP.achievements.filter(a=>a.studentId===studentId).sort(function(a,b){ return a.date<b.date?1:-1; }).slice(0,5);
-  const talHist = APP.tallies.filter(t=>t.studentId===studentId).sort(function(a,b){ return a.date<b.date?1:-1; }).slice(0,5);
-  const compHist = studentCompetitionHistory(studentId, filterAll()).slice(0,5);
+  const drHist = APP.dailyRecords.filter(r=>r.studentId===studentId && filterFn(r.date)).sort(function(a,b){ return a.date<b.date?1:-1; });
+  const achHist = APP.achievements.filter(a=>a.studentId===studentId && filterFn(a.date)).sort(function(a,b){ return a.date<b.date?1:-1; });
+  const talHist = APP.tallies.filter(t=>t.studentId===studentId && filterFn(t.date)).sort(function(a,b){ return a.date<b.date?1:-1; });
+  const compHist = studentCompetitionHistory(studentId, filterFn);
   const reqHist = APP.requests.filter(r=>r.studentId===studentId).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }).slice(0,5);
 
-  let progressHtml = '';
-  if(studyType==='Doura'){
-    const dd = douraCurrentDisplay(studentId);
-    progressHtml =
-      '<div class="kv"><span class="k">Study Type</span><span class="v">Doura</span></div>'+
-      '<div class="kv"><span class="k">Starting Juz</span><span class="v">'+esc(s.currentJuz||'—')+'</span></div>'+
-      '<div class="kv"><span class="k">Current Juz</span><span class="v">'+esc(juzLabel(dd))+'</span></div>'+
-      '<div class="kv"><span class="k">Completed Douras</span><span class="v">'+dd.completed+'</span></div>'+(s.legacyJuzPages?'<div class="banner" style="margin-top:8px;">Previous page count was '+esc(s.legacyJuzPages)+' (more than 20). Please check this student\'s current page.</div>':'');
-  } else {
-    const hd = hifzCurrentDisplay(studentId);
-    progressHtml =
-      '<div class="kv"><span class="k">Study Type</span><span class="v">Hifz</span></div>'+
-      '<div class="kv"><span class="k">Starting Juz</span><span class="v">'+esc(s.currentJuz||'—')+'</span></div>'+
-      '<div class="kv"><span class="k">Current Juz</span><span class="v">'+esc(juzLabel(hd))+'</span></div>'+(s.hifzCompleted?'<div class="kv"><span class="k">Status</span><span class="v">Hifz complete</span></div>':'')+(s.legacyJuzPages?'<div class="banner" style="margin-top:8px;">Previous page count was '+esc(s.legacyJuzPages)+' (more than 20). Please check this student\'s current page.</div>':'');
+  const starsList = [];
+  if(stats.perfStars > 0){
+    starsList.push('<div class="kv"><span class="k">Performance Score Stars ('+stats.points+' pts)</span><span class="v" style="color:var(--primary);font-weight:700;">+'+stats.perfStars+' Stars</span></div>');
   }
+  achHist.forEach(function(a){
+    starsList.push('<div class="kv"><span class="k">'+fmtDateDisplay(a.date)+' — '+esc(a.reason||'Star')+'</span><span class="v">+'+a.stars+' '+(a.stars===1?'Star':'Stars')+'</span></div>');
+  });
+  compHist.forEach(function(h){
+    if(h.stars) starsList.push('<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+' Competition</span><span class="v">+'+h.stars+' Stars</span></div>');
+  });
 
   return ''+
     '<div class="kv"><span class="k">Batch</span><span class="v">'+esc(s.batch||'—')+'</span></div>'+
     '<div class="kv"><span class="k">Admission Date</span><span class="v">'+fmtDateDisplay(s.joiningDate)+'</span></div>'+
-    progressHtml+
-    (s.progressReview && can('records') ? '<div class="banner" style="margin-top:10px;">'+(s.progressNote ? '<b>Please review Current Juz:</b> '+esc(s.progressNote) : 'Earlier sessions for this student were recorded under the previous progress method, so Current Juz was kept as it was. New Learn sessions saved from now on build on it.')+' <button class="btn small outline" style="margin-top:8px;" onclick="markProgressReviewed(\''+s.id+'\')">Mark as reviewed</button></div>' : '')+
-    '<div class="divider"></div>'+
-    '<div class="stat-mini-grid" style="margin-bottom:10px;">'+
-      '<div class="stat-mini"><div class="n">'+stats.totalStars+'</div><div class="l">Stars Earned</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.starsRemaining+'</div><div class="l">Stars Remaining</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Tallies Remaining</div></div>'+
+    '<div class="kv"><span class="k">Current Session</span><span class="v"><b>'+esc(lastRecordedSessionDisplay(studentId))+'</b></span></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 10px;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">'+
+      '<div style="font-weight:700;font-size:12.5px;color:var(--ink);">Month: <span style="color:var(--primary);">'+fmtMonthDisplay(profMonth)+'</span></div>'+
+      '<input type="month" value="'+profMonth+'" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--surface);color:var(--ink);" onchange="APP.profileMonth=this.value;openStudentProfile(\''+studentId+'\');">'+
     '</div>'+
-    '<div class="kv"><span class="k">Score</span><span class="v">'+stats.points+'</span></div>'+
-        
-        '<div class="divider"></div>'+
-    '<div class="section-title small">Recent Daily Records</div>'+
-    (drHist.length? '<div class="list">'+ drHist.map(function(r){ const isT = r.date===todayStr(), rec = normStatus(r.status)==='Recited'; return '<div class="kv'+(isT?' today-hl':'')+'"><span class="k">'+(isT?'<b>'+fmtDateDisplay(r.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(r.date))+' — '+(rec?'<span class="st-recited">Recited</span>':esc(normStatus(r.status)))+'</span><span class="v">'+r.performance+'/10</span></div>'; }).join('') +'</div>' : '<div class="subtle">No records yet.</div>')+
+    '<div class="stat-mini-grid" style="margin-bottom:10px;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));">'+
+      '<div class="stat-mini"><div class="n">'+stats.points+(stats.perfStars ? ' <span style="font-size:11px;font-weight:600;color:var(--primary);">('+stats.perfStars+' Stars)</span>' : '')+'</div><div class="l">Score</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.manualStars+'</div><div class="l">Manual Stars</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">Total Tallies</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Remaining Tallies</div></div>'+
+    '</div>'+
+    '<div class="kv"><span class="k">Performance Score</span><span class="v"><b>'+stats.points+'</b>'+(stats.perfStars ? ' ('+stats.perfStars+' Stars earned)' : '')+'</span></div>'+
+    '<div class="kv"><span class="k">Manual Stars</span><span class="v"><b>'+stats.manualStars+'</b></span></div>'+
+    '<div class="kv"><span class="k">Total Stars (for tallies)</span><span class="v"><b>'+stats.totalStars+'</b> ('+stats.perfStars+' perf + '+stats.manualStars+' manual)</span></div>'+
+    '<div class="kv"><span class="k">Tallies Received</span><span class="v"><b>'+stats.talliesGiven+'</b></span></div>'+
+    '<div class="kv"><span class="k">Tallies Cleared by Stars</span><span class="v"><b style="color:var(--green,#10b981);">'+stats.talliesCleared+'</b></span></div>'+
+    '<div class="kv"><span class="k">Tallies Remaining</span><span class="v"><b style="'+(stats.talliesRemaining>0?'color:var(--danger,#ef4444);':'')+'">'+stats.talliesRemaining+'</b></span></div>'+
     '<div class="divider"></div>'+
-    '<div class="section-title small">Recent Achievements</div>'+
-    (achHist.length? '<div class="list">'+ achHist.map(function(a){ return '<div class="kv"><span class="k">'+fmtDateDisplay(a.date)+' — '+esc(a.reason||'Achievement')+'</span><span class="v">+'+a.stars+'</span></div>'; }).join('') +'</div>' : '<div class="subtle">No achievements yet.</div>')+
+    '<div class="section-title small">Recent Daily Records ('+fmtMonthDisplay(profMonth)+')</div>'+
+    (drHist.length? '<div class="list">'+ drHist.map(function(r){ const isT = r.date===todayStr(), rec = normStatus(r.status)==='Recited'; return '<div class="kv'+(isT?' today-hl':'')+'"><span class="k">'+(isT?'<b>'+fmtDateDisplay(r.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(r.date))+' — '+(rec?'<span class="st-recited">Recited</span>':esc(normStatus(r.status)))+(r.session?' ('+esc(r.session)+')':'')+'</span><span class="v">'+r.performance+'/10</span></div>'; }).join('') +'</div>' : '<div class="subtle">No daily records for '+fmtMonthDisplay(profMonth)+'.</div>')+
     '<div class="divider"></div>'+
-    '<div class="section-title small">Recent Tallies</div>'+
-    (talHist.length? '<div class="list">'+ talHist.map(function(t){ return '<div class="kv"><span class="k">'+fmtDateDisplay(t.date)+' — '+esc(t.reason||t.type)+'</span><span class="v">+'+t.count+' ('+esc(t.type)+')</span></div>'; }).join('') +'</div>' : '<div class="subtle">No tallies yet.</div>')+
+    '<div class="section-title small">Recent Stars ('+fmtMonthDisplay(profMonth)+')</div>'+
+    (starsList.length? '<div class="list">'+starsList.join('')+'</div>' : '<div class="subtle">No stars for '+fmtMonthDisplay(profMonth)+'.</div>')+
+    '<div class="divider"></div>'+
+    '<div class="section-title small">Recent Tallies ('+fmtMonthDisplay(profMonth)+')</div>'+
+    (talHist.length? '<div class="list">'+ talHist.map(function(t){ return '<div class="kv"><span class="k">'+fmtDateDisplay(t.date)+' — '+esc(t.reason||t.type)+'</span><span class="v">+'+t.count+' ('+esc(t.type)+')</span></div>'; }).join('') +'</div>' : '<div class="subtle">No tallies for '+fmtMonthDisplay(profMonth)+'.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Competitions</div>'+
     (compHist.length? '<div class="list">'+ compHist.map(function(h){
       const rankLabel = h.result ? (h.result.rank===1?'🥇 1st':h.result.rank===2?'🥈 2nd':h.result.rank===3?'🥉 3rd':h.result.rank+'th') : '—';
-      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+' Competition</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+'':'')+'</span></div>';
-    }).join('') +'</div>' : '<div class="subtle">No competitions yet.</div>')+
+      return '<div class="kv"><span class="k">'+fmtDateDisplay(h.competition.date)+' — '+esc(h.competition.type)+' Competition</span><span class="v">'+rankLabel+(h.stars?' · +'+h.stars+' Stars':'')+'</span></div>';
+    }).join('') +'</div>' : '<div class="subtle">No competitions for '+fmtMonthDisplay(profMonth)+'.</div>')+
     '<div class="divider"></div>'+
     '<div class="section-title small">Session &amp; Leave Requests</div>'+
     (reqHist.length? '<div class="list">'+ reqHist.map(function(r){
@@ -4137,20 +4187,21 @@ function studentProfileDetailHtml(studentId, isAdmin){
 function shareStudentProfileWhatsApp(studentId){
   const s = byId(APP.students, studentId);
   if(!s){ toast('Student not found'); return; }
-  const stats = computeStats(s.id, filterAll());
-  const isDoura = s.studyType==='Doura';
-  const prog = isDoura ? douraCurrentDisplay(s.id) : hifzCurrentDisplay(s.id);
-const progLabel = isDoura ? ('Doura '+(prog.completed||0)+'  \u00B7  '+esc(juzLabel(prog))) : esc(juzLabel(prog));
+  const profMonth = APP.profileMonth || currentMonthStr();
+  const stats = computeStats(s.id, filterMonth(profMonth));
+  const currentSess = lastRecordedSessionDisplay(s.id);
 
-  const text = '📖 *Illuminated Hearts - Student Progress*\n' +
+  const text = '📖 *Illuminated Hearts - Student Report*\n' +
                '━━━━━━━━━━━━━━━━━━━━\n' +
                '👤 *Student:* ' + (s.name||'') + '\n' +
                '🏷️ *Batch:* ' + (s.batch||'-') + '\n' +
-               '📍 *Current Progress:* ' + progLabel + '\n' +
+               '📍 *Current Session:* ' + currentSess + '\n' +
+               '📅 *Month:* ' + fmtMonthDisplay(profMonth) + '\n' +
                '━━━━━━━━━━━━━━━━━━━━\n' +
-               '📊 *Lifetime Records:*\n' +
-               '*Stars Remaining:* ' + stats.starsRemaining + '\n' +
-               '🏷️ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
+               '📊 *Performance Score:* ' + stats.points + (stats.perfStars ? ' ('+stats.perfStars+' Stars)' : '') + '\n' +
+               '⭐ *Manual Stars:* ' + stats.manualStars + '\n' +
+               '🏷️ *Tallies Received:* ' + stats.talliesGiven + '\n' +
+               '✅ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
                '━━━━━━━━━━━━━━━━━━━━\n' +
                'Date: ' + todayStr();
 
