@@ -816,13 +816,25 @@ function douraCurrentDisplay(studentId){
   return { whole:Number(s.douraJuzWhole)||1, pages:Number(s.douraJuzPages)||0, completed:Number(s.completedDouras)||0 };
 }
 function lastRecordedSessionDisplay(studentId){
-  const recs = APP.dailyRecords.filter(function(r){ return r.studentId === studentId && r.session && String(r.session).trim(); });
+  const recs = APP.dailyRecords.filter(function(r){
+    return r.studentId === studentId && (r.juz || (r.session && String(r.session).trim()));
+  });
   if(recs.length){
     recs.sort(function(a, b){
       if(a.date !== b.date) return a.date < b.date ? 1 : -1;
       return (b.createdAt || 0) - (a.createdAt || 0);
     });
-    return String(recs[0].session).trim();
+    const top = recs[0];
+    if(top.juz){
+      let s = 'Juz ' + top.juz;
+      if(top.fromPage && top.toPage){
+        s += ' - Pg ' + top.fromPage + (top.fromPage !== top.toPage ? ('–' + top.toPage) : '');
+      } else if(top.toPage){
+        s += ' - Pg ' + top.toPage;
+      }
+      return s;
+    }
+    return String(top.session).trim();
   }
   const sess = APP.sessions.filter(function(x){ return x.studentId === studentId; });
   if(sess.length){
@@ -830,7 +842,17 @@ function lastRecordedSessionDisplay(studentId){
       if(a.date !== b.date) return a.date < b.date ? 1 : -1;
       return (b.sessionNo || 0) - (a.sessionNo || 0);
     });
-    return sess[0].sessionNo ? ('Session ' + sess[0].sessionNo) : (sess[0].title || sess[0].type || 'Session');
+    const top = sess[0];
+    if(top.juz){
+      let s = 'Juz ' + top.juz;
+      if(top.fromPage && top.toPage){
+        s += ' - Pg ' + top.fromPage + (top.fromPage !== top.toPage ? ('–' + top.toPage) : '');
+      } else if(top.toPage){
+        s += ' - Pg ' + top.toPage;
+      }
+      return s;
+    }
+    return top.sessionNo ? ('Session ' + top.sessionNo) : (top.title || top.type || 'Session');
   }
   return '—';
 }
@@ -1559,18 +1581,25 @@ async function removeStudent(id){
   await dbc('students').doc(id).delete();
 }
 
-async function saveDailyRecord(studentId, date, performance, status, remarks, session){
+async function saveDailyRecord(studentId, date, performance, status, remarks, session, juz, fromPage, toPage){
   const id = studentId+'_'+date;
   const prevRec = byId(APP.dailyRecords, id);
   // createdAt = when the record was FIRST added; editing never changes it (Today's Record ordering relies on it)
   const createdAt = prevRec ? (prevRec.createdAt || prevRec.updatedAt || Date.now()) : Date.now();
   const sessionVal = (session !== undefined && session !== null) ? String(session).trim() : (prevRec && prevRec.session ? prevRec.session : '');
+  const juzVal = (juz !== undefined && juz !== null && juz !== '') ? Number(juz) : (prevRec && prevRec.juz ? prevRec.juz : '');
+  const fromVal = (fromPage !== undefined && fromPage !== null && fromPage !== '') ? Number(fromPage) : (prevRec && prevRec.fromPage ? prevRec.fromPage : '');
+  const toVal = (toPage !== undefined && toPage !== null && toPage !== '') ? Number(toPage) : (prevRec && prevRec.toPage ? prevRec.toPage : '');
+
   const optimisticRec = {
     id: id,
     studentId: studentId, date: date,
     performance: Number(performance)||0,
     status: status, remarks: remarks||'',
     session: sessionVal,
+    juz: juzVal,
+    fromPage: fromVal,
+    toPage: toVal,
     createdAt: createdAt,
     updatedAt: Date.now()
   };
@@ -1585,6 +1614,9 @@ async function saveDailyRecord(studentId, date, performance, status, remarks, se
       performance: Number(performance)||0,
       status: status, remarks: remarks||'',
       session: sessionVal,
+      juz: juzVal,
+      fromPage: fromVal,
+      toPage: toVal,
       createdAt: createdAt,
       updatedAt: Date.now()
     });
@@ -2475,7 +2507,9 @@ function openDayReportModal(studentId, date){
     '</div>'+
     (rec? (
       '<div class="kv"><span class="k">Status</span><span class="v">'+esc(normStatus(rec.status))+'</span></div>'+
-      (rec.session ? '<div class="kv"><span class="k">Session</span><span class="v">'+esc(rec.session)+'</span></div>' : '')+
+      (rec.juz ? ('<div class="kv"><span class="k">Juz</span><span class="v">Juz '+esc(rec.juz)+'</span></div>' +
+                  '<div class="kv"><span class="k">Pages</span><span class="v">'+(rec.fromPage&&rec.toPage?('Pg '+esc(rec.fromPage)+'–'+esc(rec.toPage)):(rec.toPage?('Pg '+esc(rec.toPage)):'—'))+' (of 20)</span></div>')
+               : (rec.session ? '<div class="kv"><span class="k">Session</span><span class="v">'+esc(rec.session)+'</span></div>' : ''))+
       '<div class="kv"><span class="k">Performance Score</span><span class="v">'+esc(rec.performance)+'/10</span></div>'+
       '<div class="kv"><span class="k">Remarks</span><span class="v" style="font-weight:500;text-align:right;max-width:60%;">'+(rec.remarks? esc(rec.remarks) : '—')+'</span></div>'
     ) : '<div class="banner">No daily record was entered for this student on this date.</div>')+
@@ -2604,7 +2638,9 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     const dTallies = tlyMap[d] || [];
 
     let statusDisplay = '';
-    let sessionDisplay = '-';
+    let juzDisplay = '-';
+    let fromPgDisplay = '-';
+    let toPgDisplay = '-';
     let scoreDisplay = '-';
     let remarksDisplay = '-';
 
@@ -2615,10 +2651,24 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       if(norm === 'Recited') recitedDays++;
       statusCounts[norm] = (statusCounts[norm] || 0) + 1;
 
-      if(dr.session){
-        sessionDisplay = esc(dr.session);
+      if(dr.juz){
+        juzDisplay = 'Juz ' + dr.juz;
+        fromPgDisplay = (dr.fromPage !== undefined && dr.fromPage !== null && dr.fromPage !== '') ? String(dr.fromPage) : '-';
+        toPgDisplay = (dr.toPage !== undefined && dr.toPage !== null && dr.toPage !== '') ? String(dr.toPage) : '-';
+      } else if(dr.session){
+        const mj = /juz\s*(\d+)/i.exec(dr.session);
+        if(mj) juzDisplay = 'Juz ' + mj[1];
+        else juzDisplay = esc(dr.session);
+        const mp = /pg\s*(\d+)\s*[–\-]\s*(\d+)/i.exec(dr.session);
+        if(mp){ fromPgDisplay = mp[1]; toPgDisplay = mp[2]; }
+        else {
+          const ms = /pg\s*(\d+)/i.exec(dr.session);
+          if(ms) toPgDisplay = ms[1];
+        }
       } else if(dSess.length){
-        sessionDisplay = dSess.map(function(ss){ return ss.sessionNo ? ('Session ' + ss.sessionNo) : (ss.type || 'Session'); }).join(', ');
+        juzDisplay = dSess.map(function(s){ return s.juz ? ('Juz ' + s.juz) : '-'; }).join(', ');
+        fromPgDisplay = dSess.map(function(s){ return s.fromPage || '-'; }).join(', ');
+        toPgDisplay = dSess.map(function(s){ return s.toPage || '-'; }).join(', ');
       }
 
       if(dr.performance !== undefined && dr.performance !== null && dr.performance !== '') {
@@ -2633,7 +2683,9 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       unrecordedDays++;
       statusDisplay = '<span class="badge st-unrecorded">Unrecorded</span>';
       if(dSess.length){
-        sessionDisplay = dSess.map(function(ss){ return ss.sessionNo ? ('Session ' + ss.sessionNo) : (ss.type || 'Session'); }).join(', ');
+        juzDisplay = dSess.map(function(s){ return s.juz ? ('Juz ' + s.juz) : '-'; }).join(', ');
+        fromPgDisplay = dSess.map(function(s){ return s.fromPage || '-'; }).join(', ');
+        toPgDisplay = dSess.map(function(s){ return s.toPage || '-'; }).join(', ');
       }
     }
 
@@ -2667,7 +2719,9 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     dateRows += '<tr>' +
       '<td style="white-space:nowrap;"><b>' + fmtDateDisplay(d) + '</b><div class="subtle" style="font-size:10.5px;">' + dayOfWeekName(d) + '</div></td>' +
       '<td>' + statusDisplay + '</td>' +
-      '<td>' + sessionDisplay + '</td>' +
+      '<td><b>' + juzDisplay + '</b></td>' +
+      '<td style="text-align:center;">' + fromPgDisplay + '</td>' +
+      '<td style="text-align:center;">' + toPgDisplay + '</td>' +
       '<td>' + scoreDisplay + '</td>' +
       '<td>' + extraBadges + '</td>' +
       '<td style="max-width:140px;font-size:11px;color:var(--ink-soft);">' + remarksDisplay + '</td>' +
@@ -2698,8 +2752,8 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     '</div>'+
     '<div class="table-scroll" style="max-height:480px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
       '<table>'+
-        '<thead><tr><th>Date</th><th>Status</th><th>Session</th><th>Performance Score</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
-        '<tbody>'+(dateRows || '<tr><td colspan="6" style="text-align:center;color:var(--ink-faint);">No working days recorded in this period (Holidays / No entries)</td></tr>')+'</tbody>'+
+        '<thead><tr><th>Date</th><th>Status</th><th>Juz</th><th>From Pg</th><th>To Pg</th><th>Performance Score</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
+        '<tbody>'+(dateRows || '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);">No working days recorded in this period (Holidays / No entries)</td></tr>')+'</tbody>'+
       '</table>'+
     '</div>'+
   '</div>';
@@ -3825,18 +3879,36 @@ function exportStudentCsv(){
     ['Tallies Remaining', stats.talliesRemaining],
     ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length + ' working days'],
     ['',''],
-    ['--- DAILY STATUS BREAKDOWN ---','','','','',''],
-    ['Date','Day','Status','Session','Performance Score','Remarks']
+    ['--- DAILY STATUS BREAKDOWN ---','','','','','','',''],
+    ['Date','Day','Status','Juz','From Pg','To Pg','Performance Score','Remarks']
   ];
   dates.forEach(function(d){
     const rec = byId(APP.dailyRecords, s.id+'_'+d);
     const sess = APP.sessions.filter(function(x){ return x.studentId===s.id && x.date===d; });
-    const sessStr = (rec && rec.session) ? rec.session : (sess.length ? (sess.length + ' session' + (sess.length>1?'s':'')) : '-');
+    let recJuz = '-', recFrom = '-', recTo = '-';
+    if(rec){
+      if(rec.juz){
+        recJuz = 'Juz ' + rec.juz;
+        recFrom = (rec.fromPage !== undefined && rec.fromPage !== '') ? rec.fromPage : '-';
+        recTo = (rec.toPage !== undefined && rec.toPage !== '') ? rec.toPage : '-';
+      } else if(rec.session){
+        const mj = /juz\s*(\d+)/i.exec(rec.session);
+        recJuz = mj ? ('Juz ' + mj[1]) : rec.session;
+        const mp = /pg\s*(\d+)\s*[–\-]\s*(\d+)/i.exec(rec.session);
+        if(mp){ recFrom = mp[1]; recTo = mp[2]; }
+      }
+    } else if(sess.length){
+      recJuz = sess.map(function(x){ return x.juz ? ('Juz ' + x.juz) : '-'; }).join(', ');
+      recFrom = sess.map(function(x){ return x.fromPage || '-'; }).join(', ');
+      recTo = sess.map(function(x){ return x.toPage || '-'; }).join(', ');
+    }
     rows.push([
       d,
       dayOfWeekName(d),
       rec ? normStatus(rec.status) : 'Unrecorded',
-      sessStr,
+      recJuz,
+      recFrom,
+      recTo,
       rec ? rec.performance : 0,
       (rec && rec.remarks) ? rec.remarks : ''
     ]);
@@ -4246,9 +4318,21 @@ function openDailyEntryModal(studentId, date){
         return '<div class="chip-opt '+((rec&&normStatus(rec.status)===st)||(!rec&&st==='Recited')?'active':'')+'" data-val="'+esc(st)+'" onclick="selectChip(this)">'+st+'</div>';
       }).join('') +'</div>'+
     '</div>'+
-    '<div class="field"><label>Session</label>'+
-      '<input id="de-session" type="text" value="'+esc(rec?(rec.session||''):'')+'">'+
+    '<div class="field-row" style="margin-bottom:10px;">'+
+      '<div class="field" style="flex:1;">'+
+        '<label>Session Juz (1–30)</label>'+
+        '<input id="de-juz" type="number" min="1" max="30" step="1" placeholder="Juz (1–30)" value="'+esc(rec?(rec.juz||''):'')+'">'+
+      '</div>'+
+      '<div class="field" style="flex:1;">'+
+        '<label>From Page (1–20)</label>'+
+        '<input id="de-from-page" type="number" min="1" max="20" step="1" placeholder="1–20" value="'+esc(rec?(rec.fromPage||''):'')+'">'+
+      '</div>'+
+      '<div class="field" style="flex:1;">'+
+        '<label>To Page (1–20)</label>'+
+        '<input id="de-to-page" type="number" min="1" max="20" step="1" placeholder="1–20" value="'+esc(rec?(rec.toPage||''):'')+'">'+
+      '</div>'+
     '</div>'+
+    '<div class="subtle" style="margin:-4px 0 12px;font-size:11px;">Each Juz has 20 pages (1–20).</div>'+
     '<div class="field"><label>Performance Score (0–10)</label>'+
       '<input id="de-score" type="number" min="0" max="10" value="'+(rec?rec.performance:0)+'">'+
     '</div>'+
@@ -4301,15 +4385,35 @@ async function submitDailyEntry(studentId, date){
   const status = statusEl ? statusEl.getAttribute('data-val') : 'Recited';
   const score = document.getElementById('de-score') ? document.getElementById('de-score').value : 0;
   const remarks = document.getElementById('de-remarks') ? document.getElementById('de-remarks').value : '';
-  const sessionEl = document.getElementById('de-session');
-  const session = sessionEl ? sessionEl.value.trim() : '';
+
+  const juzEl = document.getElementById('de-juz');
+  const fromEl = document.getElementById('de-from-page');
+  const toEl = document.getElementById('de-to-page');
+  const juz = (juzEl && juzEl.value !== '') ? parseInt(juzEl.value, 10) : '';
+  const fromPage = (fromEl && fromEl.value !== '') ? parseInt(fromEl.value, 10) : '';
+  const toPage = (toEl && toEl.value !== '') ? parseInt(toEl.value, 10) : '';
+
+  if(juz !== '' && (juz < 1 || juz > 30)){ toast('Juz must be between 1 and 30'); if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save Daily Record'; } DAILY_SAVING = false; return; }
+  if(fromPage !== '' && (fromPage < 1 || fromPage > 20)){ toast('From Page must be between 1 and 20 (20 pages per Juz)'); if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save Daily Record'; } DAILY_SAVING = false; return; }
+  if(toPage !== '' && (toPage < 1 || toPage > 20)){ toast('To Page must be between 1 and 20 (20 pages per Juz)'); if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save Daily Record'; } DAILY_SAVING = false; return; }
+  if(fromPage !== '' && toPage !== '' && toPage < fromPage){ toast('"To Page" cannot be before "From Page"'); if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save Daily Record'; } DAILY_SAVING = false; return; }
+
+  let sessionStr = '';
+  if(juz !== ''){
+    sessionStr = 'Juz ' + juz;
+    if(fromPage !== '' && toPage !== ''){
+      sessionStr += ' - Pg ' + fromPage + (fromPage !== toPage ? ('–' + toPage) : '');
+    } else if(toPage !== ''){
+      sessionStr += ' - Pg ' + toPage;
+    }
+  }
 
   // Close modal instantly and toast right away!
   closeModal();
   toast('Daily record saved');
 
   try {
-    await saveDailyRecord(studentId, date, score, status, remarks, session);
+    await saveDailyRecord(studentId, date, score, status, remarks, sessionStr, juz, fromPage, toPage);
   } catch(err) {
     console.error('Save daily record error:', err);
   } finally {
