@@ -2226,7 +2226,7 @@ function renderTodayView(){
       '<div class="avatar">'+esc(initials(s.name))+'</div>'+
       '<div class="row-main">'+
         '<div class="row-title">'+esc(s.name)+'</div>'+
-        '<div class="row-sub">'+esc(s.batch||'—')+(done? ' · '+esc(normStatus(rec.status))+' · '+esc(rec.performance)+'/10' : '')+'</div>'+
+        '<div class="row-sub">'+esc(s.batch||'—')+(done? ' · '+esc(normStatus(rec.status)) + (rec.session ? (' · '+esc(rec.session)) : '') + ' · '+esc(rec.performance)+'/10' : '')+'</div>'+
       '</div>'+
       '<div class="row-end">'+
         (done? statusBadge(rec.status) : '<span class="badge pending">Pending</span>')+
@@ -2384,7 +2384,7 @@ function renderCalendarReport(){
       '<div class="avatar">'+esc(initials(s.name))+'</div>'+
       '<div class="row-main">'+
         '<div class="row-title">'+esc(s.name)+'</div>'+
-        '<div class="row-sub">'+ (rec? esc(normStatus(rec.status))+' · '+esc(rec.performance)+'/10 · '+sessCount+' session'+(sessCount===1?'':'s') : 'No record') +'</div>'+
+        '<div class="row-sub">'+ (rec? esc(normStatus(rec.status)) + (rec.session ? (' · '+esc(rec.session)) : '') + ' · '+esc(rec.performance)+'/10' : 'No record') +'</div>'+
       '</div>'+
       '<div class="row-end">'+ (tal>0? '<span class="badge tallies">'+tal+' tallies</span>' : '') +'</div>'+
     '</div>';
@@ -4196,7 +4196,7 @@ function openDailyEntryModal(studentId, date){
       }).join('') +'</div>'+
     '</div>'+
     '<div class="field"><label>Session</label>'+
-      '<input id="de-session" type="text" placeholder="e.g. Session 1, Sabaq, Morning" value="'+esc(rec?(rec.session||''):'')+'">'+
+      '<input id="de-session" type="text" value="'+esc(rec?(rec.session||''):'')+'">'+
     '</div>'+
     '<div class="field"><label>Performance Score (0–10)</label>'+
       '<input id="de-score" type="number" min="0" max="10" value="'+(rec?rec.performance:0)+'">'+
