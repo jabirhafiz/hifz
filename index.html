@@ -1513,16 +1513,18 @@ async function removeStudent(id){
   await dbc('students').doc(id).delete();
 }
 
-async function saveDailyRecord(studentId, date, performance, status, remarks){
+async function saveDailyRecord(studentId, date, performance, status, remarks, session){
   const id = studentId+'_'+date;
   const prevRec = byId(APP.dailyRecords, id);
   // createdAt = when the record was FIRST added; editing never changes it (Today's Record ordering relies on it)
   const createdAt = prevRec ? (prevRec.createdAt || prevRec.updatedAt || Date.now()) : Date.now();
+  const sessionVal = (session !== undefined && session !== null) ? String(session).trim() : (prevRec && prevRec.session ? prevRec.session : '');
   const optimisticRec = {
     id: id,
     studentId: studentId, date: date,
     performance: Number(performance)||0,
     status: status, remarks: remarks||'',
+    session: sessionVal,
     createdAt: createdAt,
     updatedAt: Date.now()
   };
@@ -1531,25 +1533,37 @@ async function saveDailyRecord(studentId, date, performance, status, remarks){
   else APP.dailyRecords.push(optimisticRec);
   render();
 
-  await dbc('dailyRecords').doc(id).set({
-    studentId: studentId, date: date,
-    performance: Number(performance)||0,
-    status: status, remarks: remarks||'',
-    createdAt: createdAt,
-    updatedAt: Date.now()
-  });
-  const autoId = studentId+'_'+date+'_auto';
-  const autoRef = dbc('tallies').doc(autoId);
-  if(AUTO_TALLY_RULES[status]){
-    await autoRef.set({
+  try {
+    await dbc('dailyRecords').doc(id).set({
       studentId: studentId, date: date,
-      count: AUTO_TALLY_RULES[status],
-      reason: status+' (automatic)',
-      type: 'Automatic',
+      performance: Number(performance)||0,
+      status: status, remarks: remarks||'',
+      session: sessionVal,
+      createdAt: createdAt,
       updatedAt: Date.now()
     });
-  } else {
-    await autoRef.delete();
+    const autoId = studentId+'_'+date+'_auto';
+    const autoRef = dbc('tallies').doc(autoId);
+    if(AUTO_TALLY_RULES[status]){
+      const autoData = {
+        studentId: studentId, date: date,
+        count: AUTO_TALLY_RULES[status],
+        reason: status+' (automatic)',
+        type: 'Automatic',
+        updatedAt: Date.now()
+      };
+      await autoRef.set(autoData);
+      const atIdx = APP.tallies.findIndex(function(t){ return t.id === autoId; });
+      if(atIdx !== -1) APP.tallies[atIdx] = Object.assign({ id: autoId }, autoData);
+      else APP.tallies.push(Object.assign({ id: autoId }, autoData));
+      render();
+    } else {
+      await autoRef.delete();
+      const atIdx = APP.tallies.findIndex(function(t){ return t.id === autoId; });
+      if(atIdx !== -1){ APP.tallies.splice(atIdx, 1); render(); }
+    }
+  } catch(err) {
+    console.error('Remote saveDailyRecord error:', err);
   }
 }
 
@@ -1735,14 +1749,32 @@ async function deleteSessionDoc(id, sessData){
 }
 
 async function addAchievement(studentId, date, stars, reason){
-  await dbc('achievements').add({
-    studentId: studentId, date: date, stars: Number(stars)||0, reason: reason||'', createdAt: Date.now()
-  });
+  const tempId = 'ach_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const rec = { id: tempId, studentId: studentId, date: date, stars: Number(stars)||0, reason: reason||'', createdAt: Date.now() };
+  APP.achievements.push(rec);
+  render();
+  try {
+    const res = await dbc('achievements').add({
+      studentId: studentId, date: date, stars: Number(stars)||0, reason: reason||'', createdAt: rec.createdAt
+    });
+    if(res && res.id) rec.id = res.id;
+  } catch(err) {
+    console.error('Remote addAchievement error:', err);
+  }
 }
 async function addManualTally(studentId, date, count, reason){
-  await dbc('tallies').add({
-    studentId: studentId, date: date, count: Number(count)||0, reason: reason||'', type:'Manual', createdAt: Date.now()
-  });
+  const tempId = 'tly_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const rec = { id: tempId, studentId: studentId, date: date, count: Number(count)||0, reason: reason||'', type:'Manual', createdAt: Date.now() };
+  APP.tallies.push(rec);
+  render();
+  try {
+    const res = await dbc('tallies').add({
+      studentId: studentId, date: date, count: Number(count)||0, reason: reason||'', type:'Manual', createdAt: rec.createdAt
+    });
+    if(res && res.id) rec.id = res.id;
+  } catch(err) {
+    console.error('Remote addManualTally error:', err);
+  }
 }
 
 /* ---- Session / Leave Requests ---- */
@@ -2278,10 +2310,23 @@ function confirmDeleteEntry(kind, id){
   let remove = (qEl && qEl.value!=='') ? Number(qEl.value) : qty;
   if(!Number.isInteger(remove) || remove<1 || remove>qty){ toast('Enter a quantity between 1 and '+qty); return; }
   const st = byId(APP.students, e.studentId);
-  PENDING_CONFIRM = async function(){
-    try{ await deleteEntry(kind, id, remove); toast(info.noun.charAt(0).toUpperCase()+info.noun.slice(1)+' entry updated'); }
-    catch(err){ toast(err.message||'Could not delete'); }
-    openEntriesManager();
+  PENDING_CONFIRM = function(){
+    if(remove < qty){
+      e[info.field] = qty - remove;
+    } else {
+      const coll = APP[kind];
+      if(coll){
+        const idx = coll.findIndex(function(x){ return x.id === id; });
+        if(idx !== -1) coll.splice(idx, 1);
+      }
+    }
+    closeModal();
+    render();
+    toast(info.noun.charAt(0).toUpperCase()+info.noun.slice(1)+' entry updated');
+
+    deleteEntry(kind, id, remove).catch(function(err){
+      toast(err.message||'Could not delete');
+    });
   };
   openConfirmModal('Delete '+(info.noun==='star'?'Star':'Tally')+' Entry',
     'Remove '+remove+' '+info.noun+(remove===1?'':'s')+(remove<qty?' (of '+qty+')':'')+' for '+(st?st.name:'this student')+' dated '+fmtDateDisplay(e.date)+(e.reason?' ("'+e.reason+'")':'')+'? Other entries are not affected.',
@@ -2385,6 +2430,7 @@ function openDayReportModal(studentId, date){
     '</div>'+
     (rec? (
       '<div class="kv"><span class="k">Status</span><span class="v">'+esc(normStatus(rec.status))+'</span></div>'+
+      (rec.session ? '<div class="kv"><span class="k">Session</span><span class="v">'+esc(rec.session)+'</span></div>' : '')+
       '<div class="kv"><span class="k">Performance Score</span><span class="v">'+esc(rec.performance)+'/10</span></div>'+
       '<div class="kv"><span class="k">Remarks</span><span class="v" style="font-weight:500;text-align:right;max-width:60%;">'+(rec.remarks? esc(rec.remarks) : '—')+'</span></div>'
     ) : '<div class="banner">No daily record was entered for this student on this date.</div>')+
@@ -2513,6 +2559,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     const dTallies = tlyMap[d] || [];
 
     let statusDisplay = '';
+    let sessionDisplay = '-';
     let scoreDisplay = '-';
     let remarksDisplay = '-';
 
@@ -2522,6 +2569,12 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       statusDisplay = statusBadge(dr.status);
       if(norm === 'Recited') recitedDays++;
       statusCounts[norm] = (statusCounts[norm] || 0) + 1;
+
+      if(dr.session){
+        sessionDisplay = esc(dr.session);
+      } else if(dSess.length){
+        sessionDisplay = dSess.map(function(ss){ return ss.sessionNo ? ('Session ' + ss.sessionNo) : (ss.type || 'Session'); }).join(', ');
+      }
 
       if(dr.performance !== undefined && dr.performance !== null && dr.performance !== '') {
         scoreDisplay = '<b>' + dr.performance + '/10</b>';
@@ -2534,6 +2587,9 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     } else {
       unrecordedDays++;
       statusDisplay = '<span class="badge st-unrecorded">Unrecorded</span>';
+      if(dSess.length){
+        sessionDisplay = dSess.map(function(ss){ return ss.sessionNo ? ('Session ' + ss.sessionNo) : (ss.type || 'Session'); }).join(', ');
+      }
     }
 
     let newLearnStr = '-';
@@ -2566,6 +2622,7 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     dateRows += '<tr>' +
       '<td style="white-space:nowrap;"><b>' + fmtDateDisplay(d) + '</b><div class="subtle" style="font-size:10.5px;">' + dayOfWeekName(d) + '</div></td>' +
       '<td>' + statusDisplay + '</td>' +
+      '<td>' + sessionDisplay + '</td>' +
       '<td>' + scoreDisplay + '</td>' +
       '<td>' + extraBadges + '</td>' +
       '<td style="max-width:140px;font-size:11px;color:var(--ink-soft);">' + remarksDisplay + '</td>' +
@@ -2595,8 +2652,8 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     '</div>'+
     '<div class="table-scroll" style="max-height:480px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
       '<table>'+
-        '<thead><tr><th>Date</th><th>Status</th><th>Performance Score</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
-        '<tbody>'+(dateRows || '<tr><td colspan="5" style="text-align:center;color:var(--ink-faint);">No working days recorded in this period (Holidays / No entries)</td></tr>')+'</tbody>'+
+        '<thead><tr><th>Date</th><th>Status</th><th>Session</th><th>Performance Score</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
+        '<tbody>'+(dateRows || '<tr><td colspan="6" style="text-align:center;color:var(--ink-faint);">No working days recorded in this period (Holidays / No entries)</td></tr>')+'</tbody>'+
       '</table>'+
     '</div>'+
   '</div>';
@@ -3722,20 +3779,20 @@ function exportStudentCsv(){
     ['Tallies', stats.talliesGiven],
     ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length + ' working days'],
     ['',''],
-    ['--- DAILY STATUS BREAKDOWN ---','','','',''],
-    ['Date','Day','Status','Performance Score','Remarks']
+    ['--- DAILY STATUS BREAKDOWN ---','','','','',''],
+    ['Date','Day','Status','Session','Performance Score','Remarks']
   ];
   dates.forEach(function(d){
     const rec = byId(APP.dailyRecords, s.id+'_'+d);
     const sess = APP.sessions.filter(function(x){ return x.studentId===s.id && x.date===d; });
-    const nl = sess.filter(function(x){ return x.type==='New Learn'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
-    const rev = sess.filter(function(x){ return x.type==='Old Learn / Revision'; }).reduce(function(sum,x){ return sum + pageCount(x.fromPage,x.toPage); }, 0);
+    const sessStr = (rec && rec.session) ? rec.session : (sess.length ? (sess.length + ' session' + (sess.length>1?'s':'')) : '-');
     rows.push([
       d,
       dayOfWeekName(d),
       rec ? normStatus(rec.status) : 'Unrecorded',
+      sessStr,
       rec ? rec.performance : 0,
-                  (rec && rec.remarks) ? rec.remarks : ''
+      (rec && rec.remarks) ? rec.remarks : ''
     ]);
   });
   downloadCsv(s.name.replace(/\s+/g,'_')+'_'+period+'.csv', rows);
@@ -3934,7 +3991,12 @@ function selectStudyType(el){
 }
 function confirmDeleteStudent(id){
   PENDING_CONFIRM = function(){
-    removeStudent(id).then(function(){ closeModal(); toast('Student removed'); });
+    const idx = APP.students.findIndex(function(s){ return s.id === id; });
+    if(idx !== -1) APP.students.splice(idx, 1);
+    closeModal();
+    render();
+    toast('Student removed');
+    removeStudent(id).catch(function(err){ console.error('Remove student error:', err); });
   };
   openConfirmModal('Remove Student', 'Remove this student? This cannot be undone.', 'Remove');
 }
@@ -4133,14 +4195,17 @@ function openDailyEntryModal(studentId, date){
         return '<div class="chip-opt '+((rec&&normStatus(rec.status)===st)||(!rec&&st==='Recited')?'active':'')+'" data-val="'+esc(st)+'" onclick="selectChip(this)">'+st+'</div>';
       }).join('') +'</div>'+
     '</div>'+
-
+    '<div class="field"><label>Session</label>'+
+      '<input id="de-session" type="text" placeholder="e.g. Session 1, Sabaq, Morning" value="'+esc(rec?(rec.session||''):'')+'">'+
+    '</div>'+
     '<div class="field"><label>Performance Score (0–10)</label>'+
-      '<input id="de-score" type="number" min="0" max="10" value="'+(rec?rec.performance:0)+'"></div>'+
+      '<input id="de-score" type="number" min="0" max="10" value="'+(rec?rec.performance:0)+'">'+
+    '</div>'+
     '<div class="field"><label>Remarks</label><textarea id="de-remarks" placeholder="Optional remarks">'+esc(rec?rec.remarks:'')+'</textarea></div>'+
     '<div class="modal-actions">'+
       (rec? '<button class="btn danger" onclick="confirmDeleteDailyRecord(\''+studentId+'\',\''+date+'\')">'+iconSvg('trash')+' Delete</button>' : '')+
       '<button class="btn outline" onclick="requestCloseModal()">Cancel</button>'+
-      '<button class="btn" onclick="submitDailyEntry(\''+studentId+'\',\''+date+'\')">Save Daily Record</button>'+
+      '<button class="btn" id="de-btn-save" onclick="submitDailyEntry(\''+studentId+'\',\''+date+'\')">Save Daily Record</button>'+
     '</div>'
   );
 }
@@ -4174,29 +4239,61 @@ async function removeModalSession(idx){
   refreshModalSessionsList(sess.studentId, sess.date);
   if(sess.id){ await deleteSessionDoc(sess.id, sess); }
 }
+let DAILY_SAVING = false;
 async function submitDailyEntry(studentId, date){
+  if(DAILY_SAVING) return;
+  DAILY_SAVING = true;
+  const saveBtn = document.getElementById('de-btn-save');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
   const statusEl = document.querySelector('#de-status .chip-opt.active');
   const status = statusEl ? statusEl.getAttribute('data-val') : 'Recited';
-  const score = document.getElementById('de-score').value;
-  const remarks = document.getElementById('de-remarks').value;
-  await saveDailyRecord(studentId, date, score, status, remarks);
+  const score = document.getElementById('de-score') ? document.getElementById('de-score').value : 0;
+  const remarks = document.getElementById('de-remarks') ? document.getElementById('de-remarks').value : '';
+  const sessionEl = document.getElementById('de-session');
+  const session = sessionEl ? sessionEl.value.trim() : '';
+
+  // Close modal instantly and toast right away!
   closeModal();
   toast('Daily record saved');
+
+  try {
+    await saveDailyRecord(studentId, date, score, status, remarks, session);
+  } catch(err) {
+    console.error('Save daily record error:', err);
+  } finally {
+    DAILY_SAVING = false;
+  }
 }
 function confirmDeleteDailyRecord(studentId, date){
   PENDING_CONFIRM = function(){
-    deleteDailyRecord(studentId, date).then(function(){
-      closeModal();
-      toast('Day\'s record deleted');
+    const id = studentId+'_'+date;
+    const rIdx = APP.dailyRecords.findIndex(function(r){ return r.id === id; });
+    if(rIdx !== -1) APP.dailyRecords.splice(rIdx, 1);
+    const autoId = id+'_auto';
+    const tIdx = APP.tallies.findIndex(function(t){ return t.id === autoId; });
+    if(tIdx !== -1) APP.tallies.splice(tIdx, 1);
+    APP.sessions = APP.sessions.filter(function(x){ return !(x.studentId === studentId && x.date === date); });
+
+    closeModal();
+    render();
+    toast('Day\'s record deleted');
+
+    deleteDailyRecord(studentId, date).catch(function(err){
+      console.error('Remote deleteDailyRecord error:', err);
     });
   };
   openConfirmModal('Delete Day\'s Record', 'Delete this day\'s record? This cannot be undone.', 'Delete');
 }
 async function deleteDailyRecord(studentId, date){
-  await dbc('dailyRecords').doc(studentId+'_'+date).delete();
-  await dbc('tallies').doc(studentId+'_'+date+'_auto').delete();
-  const sess = APP.sessions.filter(function(x){ return x.studentId===studentId && x.date===date; });
-  for(let i=0;i<sess.length;i++){ await deleteSessionDoc(sess[i].id, sess[i]); }
+  const id = studentId+'_'+date;
+  const autoId = id+'_auto';
+  try { await dbc('dailyRecords').doc(id).delete(); } catch(e){ console.error(e); }
+  try { await dbc('tallies').doc(autoId).delete(); } catch(e){ console.error(e); }
+  try {
+    const sess = APP.sessions.filter(function(x){ return x.studentId===studentId && x.date===date; });
+    for(let i=0;i<sess.length;i++){ await deleteSessionDoc(sess[i].id, sess[i]); }
+  } catch(e){ console.error(e); }
 }
 
 /* ---- Session sub-modal ---- */
@@ -4289,9 +4386,9 @@ async function submitAchievement(studentId){
   const date = document.getElementById('am-date').value || todayStr();
   const stars = document.getElementById('am-stars').value;
   const reason = document.getElementById('am-reason').value;
-  await addAchievement(studentId, date, stars, reason);
   closeModal();
   toast('Achievement star added');
+  addAchievement(studentId, date, stars, reason).catch(function(e){ console.error(e); });
 }
 
 /* ---- Tally modal ---- */
@@ -4314,9 +4411,9 @@ async function submitTally(studentId){
   const date = document.getElementById('tm-date').value || todayStr();
   const count = document.getElementById('tm-count').value;
   const reason = document.getElementById('tm-reason').value;
-  await addManualTally(studentId, date, count, reason);
   closeModal();
   toast('Tally added');
+  addManualTally(studentId, date, count, reason).catch(function(e){ console.error(e); });
 }
 
 /* ---- Prevent duplicate submissions (double taps) ---- */
