@@ -2567,8 +2567,6 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       '<td style="white-space:nowrap;"><b>' + fmtDateDisplay(d) + '</b><div class="subtle" style="font-size:10.5px;">' + dayOfWeekName(d) + '</div></td>' +
       '<td>' + statusDisplay + '</td>' +
       '<td>' + scoreDisplay + '</td>' +
-      '<td>' + newLearnStr + '</td>' +
-      '<td>' + revStr + '</td>' +
       '<td>' + extraBadges + '</td>' +
       '<td style="max-width:140px;font-size:11px;color:var(--ink-soft);">' + remarksDisplay + '</td>' +
     '</tr>';
@@ -2584,14 +2582,11 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+ENTRY_STATUS_OPTIONS.map(function(st){ const c = statusCounts[st]||0; return c > 0 ? ('<span class="badge '+(STATUS_CLASS[st]||'done')+'>'+c+' '+st+'</span>') : ''; }).join('')+(unrecordedDays?'<span class="badge st-unrecorded">'+unrecordedDays+' Unrecorded</span>':'')+'</div>'+
     '</div>'+
     '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Performance Summary</div>'+
-    '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(3,1fr);">'+
-      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Score</div></div>'+
+    '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">'+
+      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">1. Performance Score</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.totalStars+'</div><div class="l">2. Stars Earned</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Tallies</div></div>'+
       '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">4. Days Recited ('+attendanceRate+'%)</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.newLearnPages+' pg</div><div class="l">5. New Learn ('+stats.newLearnScore+' pts)</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.oldRevisionPages+' pg</div><div class="l">6. Revision ('+stats.oldRevisionScore+' pts)</div></div>'+
-
     '</div>'+
     '<div class="divider"></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
@@ -2600,8 +2595,8 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     '</div>'+
     '<div class="table-scroll" style="max-height:480px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">'+
       '<table>'+
-        '<thead><tr><th>Date</th><th>Status</th><th>Score</th><th>New Learn</th><th>Revision</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
-        '<tbody>'+(dateRows || '<tr><td colspan="7" style="text-align:center;color:var(--ink-faint);">No working days recorded in this period (Holidays / No entries)</td></tr>')+'</tbody>'+
+        '<thead><tr><th>Date</th><th>Status</th><th>Performance Score</th><th>Stars/Tallies</th><th>Remarks</th></tr></thead>'+
+        '<tbody>'+(dateRows || '<tr><td colspan="5" style="text-align:center;color:var(--ink-faint);">No working days recorded in this period (Holidays / No entries)</td></tr>')+'</tbody>'+
       '</table>'+
     '</div>'+
   '</div>';
@@ -2626,8 +2621,7 @@ function yearlyReportTable(s, yearOverride){
     const st = computeStats(s.id, filterMonth(ym));
     rows += '<tr>'+
       '<td><b>'+monthNames[m-1]+'</b></td>'+
-      '<td>'+st.newLearnPages+'</td>'+
-      '<td>'+st.talliesGiven+'</td>'+
+            '<td>'+st.talliesGiven+'</td>'+
       '<td>'+st.totalStars+'</td>'+
       '<td>'+st.points+'</td>'+
     '</tr>';
@@ -2636,15 +2630,14 @@ function yearlyReportTable(s, yearOverride){
   return ''+
 '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+'  \u00B7  '+esc(year)+' yearly report</div></div>'+
   '<div class="table-scroll" style="margin-bottom:14px;"><table>'+
-    '<tr><th>Month</th><th>New Learn</th><th>Tallies</th><th>Stars Earned</th><th>Score</th></tr>'+
+    '<tr><th>Month</th><th>Tallies</th><th>Stars Earned</th><th>Performance Score</th></tr>'+
     rows+
   '</table></div>'+
   '<div class="card">'+
     '<div class="section-title small">Year Summary ('+esc(year)+')</div>'+
-    '<div class="kv"><span class="k">New Learn Pages</span><span class="v"><b>'+yearStats.newLearnPages+'</b></span></div>'+
-    '<div class="kv"><span class="k">Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
+        '<div class="kv"><span class="k">Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
     '<div class="kv"><span class="k">Stars Earned</span><span class="v"><b>'+yearStats.totalStars+'</b></span></div>'+
-    '<div class="kv"><span class="k">Score</span><span class="v"><b>'+yearStats.points+'</b></span></div>'+
+    '<div class="kv"><span class="k">Performance Score</span><span class="v"><b>'+yearStats.points+'</b></span></div>'+
   '</div>';
 }
 
@@ -2683,9 +2676,7 @@ function renderOverviewReport(){
       '<td><b>'+st.points+'</b></td>'+
       '<td>'+st.totalStars+'</td>'+
       '<td>'+st.talliesGiven+'</td>'+
-      '<td>'+st.newLearnPages+' pg</td>'+
-      '<td>'+st.oldRevisionPages+' pg</td>'+
-      '<td>'+recCount+' / '+periodDays+' d</td>'+
+                  '<td>'+recCount+' / '+periodDays+' d</td>'+
     '</tr>';
   }).join('');
 
@@ -2716,8 +2707,8 @@ function renderOverviewReport(){
   '</div>'+
 '<div class="subtle" style="margin-bottom:8px;">'+list.length+' students in '+periodLabel+' ('+periodDays+' working days)  \u00B7  Click any student row to view full daily details</div>'+
   '<div class="table-scroll"><table>'+
-    '<thead><tr><th>Student</th><th>Class</th><th>Score</th><th>Stars Earned</th><th>Tallies</th><th>New Learn</th><th>Revision</th><th>Attendance</th></tr></thead>'+
-    '<tbody>'+(rows || '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
+    '<thead><tr><th>Student</th><th>Class</th><th>Performance Score</th><th>Stars Earned</th><th>Tallies</th><th>Attendance</th></tr></thead>'+
+    '<tbody>'+(rows || '<tr><td colspan="6" style="text-align:center;color:var(--ink-faint);">No students found</td></tr>')+'</tbody>'+
   '</table></div>';
 }
 /* ============================= REQUESTS (admin) ============================= */
@@ -2961,7 +2952,7 @@ function renderSettingsView(){
   '</div>'+
   '<div class="info-box">'+
     '<b>Rules Summary</b><br/><br/>'+
-    '• <b>Hifz Students:</b> Current Juz is set automatically from New Learn sessions (e.g. Juz 5, pages 15–17 → Juz 5 - Pg 17). Every Juz has 20 pages; a Juz completes when page 20 is recited and marked Clear. Admission Starting Juz is fixed.<br/>'+
+    '• <b>Hifz Students:</b> Current Juz is tracked for each student. Admission Starting Juz is fixed.<br/>'+
     '• <b>Doura Students:</b> Recitations track through Juz 1–30 (20 pages each). When Juz 30 is completed, the Doura counter increases automatically and the next Doura restarts from Juz 1.<br/>'+
     '• <b>Star–Tally Offset:</b> 1 Star cancels 2 Tallies automatically. Stars Earned is preserved permanently.<br/>'+
     '• <b>Competitions:</b> 🥇 1st Place = +5🥈 2nd Place = +3🥉 3rd Place = +2— automatically awarded into the Star Board above.<br/>'+
@@ -3623,10 +3614,8 @@ function shareReportWhatsApp(){
            '\u2022 Score: *' + stats.points + '*\n' +
            '\u2022 Stars Earned: *' + stats.totalStars + '*\n' +
            '\u2022 Tallies: *' + stats.talliesGiven + '*\n' +
-           '\u2022 New Learn: *' + stats.newLearnPages + ' pages (' + stats.newLearnScore + ' pts)*\n' +
+                      
            
-           '\u2022 Revision: *' + stats.oldRevisionPages + ' pages (' + stats.oldRevisionScore + ' pts)*\n' +
-
            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
            'Generated on ' + dateStr;
   } else {
@@ -3650,7 +3639,7 @@ function shareReportWhatsApp(){
            'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n';
     list.forEach(function(s, idx){
       const stats = computeStats(s.id, filterFn);
-      text += (idx+1) + '. *' + s.name + '* (' + (s.batch||'-') + '): Pts: ' + stats.points + ' | Stars: ' + stats.totalStars + ' | Tallies: ' + stats.talliesGiven + ' | New: ' + stats.newLearnPages + 'pg | Rev: ' + stats.oldRevisionPages + 'pg\n';
+      text += (idx+1) + '. *' + s.name + '* (' + (s.batch||'-') + '): Score: ' + stats.points + ' | Stars: ' + stats.totalStars + ' | Tallies: ' + stats.talliesGiven + '\n';
     });
   }
 
@@ -3728,17 +3717,13 @@ function exportStudentCsv(){
     ['Student', s.name],
     ['Batch', s.batch||''],
     ['Period', period],
-    ['Score', stats.points],
+    ['Performance Score', stats.points],
     ['Stars Earned', stats.totalStars],
     ['Tallies', stats.talliesGiven],
-    ['New Learn Pages', stats.newLearnPages],
-
-    ['Old Revision Pages', stats.oldRevisionPages],
-    ['Pages Recited', stats.totalPages],
     ['Days Recorded', stats.dailyRecordsCount + ' of ' + dates.length + ' working days'],
     ['',''],
-    ['--- DAILY STATUS BREAKDOWN ---','','','','','','',''],
-    ['Date','Day','Status','Score','New Learn Pages','Revision Pages','Remarks']
+    ['--- DAILY STATUS BREAKDOWN ---','','','',''],
+    ['Date','Day','Status','Performance Score','Remarks']
   ];
   dates.forEach(function(d){
     const rec = byId(APP.dailyRecords, s.id+'_'+d);
@@ -3750,9 +3735,7 @@ function exportStudentCsv(){
       dayOfWeekName(d),
       rec ? normStatus(rec.status) : 'Unrecorded',
       rec ? rec.performance : 0,
-      nl,
-      rev,
-      (rec && rec.remarks) ? rec.remarks : ''
+                  (rec && rec.remarks) ? rec.remarks : ''
     ]);
   });
   downloadCsv(s.name.replace(/\s+/g,'_')+'_'+period+'.csv', rows);
@@ -3777,7 +3760,7 @@ function exportOverviewCsv(){
     periodDays = getWorkingDatesInRange(period+'-01', period+'-'+String(lastDay).padStart(2,'0')).length;
   }
   const list = filteredOverviewStudents();
-  const rows = [['Student','Class','Score','Stars Earned','Tallies','New Learn Pages','Old Revision Pages','Days Recited','Days']];
+  const rows = [['Student','Class','Performance Score','Stars Earned','Tallies','Days Recited','Days']];
   list.forEach(function(s){
     const st = computeStats(s.id, filterFn);
     rows.push([
@@ -3786,9 +3769,7 @@ function exportOverviewCsv(){
       st.points,
       st.totalStars,
       st.talliesGiven,
-      st.newLearnPages,
-      st.oldRevisionPages,
-      st.statusCounts['Recited']||0,
+                  st.statusCounts['Recited']||0,
       periodDays
     ]);
   });
@@ -4066,10 +4047,8 @@ function studentProfileDetailHtml(studentId, isAdmin){
       '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Tallies Remaining</div></div>'+
     '</div>'+
     '<div class="kv"><span class="k">Score</span><span class="v">'+stats.points+'</span></div>'+
-    '<div class="kv"><span class="k">New Learn / Old Revision Pages</span><span class="v">'+stats.newLearnPages+' / '+stats.oldRevisionPages+'</span></div>'+
-    
-    '<div class="kv"><span class="k">Recitation Sessions</span><span class="v">'+stats.sessionsCount+'</span></div>'+
-    '<div class="divider"></div>'+
+        
+        '<div class="divider"></div>'+
     '<div class="section-title small">Recent Daily Records</div>'+
     (drHist.length? '<div class="list">'+ drHist.map(function(r){ const isT = r.date===todayStr(), rec = normStatus(r.status)==='Recited'; return '<div class="kv'+(isT?' today-hl':'')+'"><span class="k">'+(isT?'<b>'+fmtDateDisplay(r.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(r.date))+' — '+(rec?'<span class="st-recited">Recited</span>':esc(normStatus(r.status)))+'</span><span class="v">'+r.performance+'/10</span></div>'; }).join('') +'</div>' : '<div class="subtle">No records yet.</div>')+
     '<div class="divider"></div>'+
@@ -4108,10 +4087,7 @@ const progLabel = isDoura ? ('Doura '+(prog.completed||0)+'  \u00B7  '+esc(juzLa
                '📍 *Current Progress:* ' + progLabel + '\n' +
                '━━━━━━━━━━━━━━━━━━━━\n' +
                '📊 *Lifetime Records:*\n' +
-               '• New Learn Pages: *' + stats.newLearnPages + '*\n' +
-               '• Old Revision Pages: *' + stats.oldRevisionPages + '*\n' +
-               '• Sessions Completed: *' + stats.sessionsCount + '*\n' +
-               '⭐ *Stars Remaining:* ' + stats.starsRemaining + '\n' +
+               '*Stars Remaining:* ' + stats.starsRemaining + '\n' +
                '🏷️ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
                '━━━━━━━━━━━━━━━━━━━━\n' +
                'Date: ' + todayStr();
@@ -4157,12 +4133,7 @@ function openDailyEntryModal(studentId, date){
         return '<div class="chip-opt '+((rec&&normStatus(rec.status)===st)||(!rec&&st==='Recited')?'active':'')+'" data-val="'+esc(st)+'" onclick="selectChip(this)">'+st+'</div>';
       }).join('') +'</div>'+
     '</div>'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
-      '<div class="section-title small" style="margin:0;">Recitation Sessions</div>'+
-      '<button class="btn small outline" onclick="openSessionModal(\''+studentId+'\',\''+date+'\')">'+iconSvg('plus')+' Add Session</button>'+
-    '</div>'+
-    '<div id="de-sessions-list">'+renderModalSessionsList(studentId,date)+'</div>'+
-    '<div class="divider"></div>'+
+
     '<div class="field"><label>Performance Score (0–10)</label>'+
       '<input id="de-score" type="number" min="0" max="10" value="'+(rec?rec.performance:0)+'"></div>'+
     '<div class="field"><label>Remarks</label><textarea id="de-remarks" placeholder="Optional remarks">'+esc(rec?rec.remarks:'')+'</textarea></div>'+
@@ -4219,7 +4190,7 @@ function confirmDeleteDailyRecord(studentId, date){
       toast('Day\'s record deleted');
     });
   };
-  openConfirmModal('Delete Day\'s Record', 'Delete this day\'s record and all its recitation sessions? This cannot be undone.', 'Delete');
+  openConfirmModal('Delete Day\'s Record', 'Delete this day\'s record? This cannot be undone.', 'Delete');
 }
 async function deleteDailyRecord(studentId, date){
   await dbc('dailyRecords').doc(studentId+'_'+date).delete();
