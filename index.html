@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -2764,20 +2764,48 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
     return c > 0 ? ('<span class="badge '+(STATUS_CLASS[st]||'done')+'>'+c+' '+st+'</span>') : '';
   }).join('');
 
+  const headerHtml = !hideWho ? (
+    '<div style="margin-bottom:12px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;">'+
+        '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:18px;">'+esc(s.name)+'</b>'+
+        '<div class="subtle">'+esc(s.batch||'-')+'  \u00B7  '+esc(periodLabel)+' ('+totalPeriodDays+' Working Days)</div></div>'+
+        (badgesHtml ? '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+badgesHtml+'</div>' : '')+
+      '</div>'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--ink-soft);background:var(--bg);padding:8px 12px;border-radius:8px;border:1px solid var(--border);">'+
+        '<div><b>Starting Juz:</b> Juz '+esc(s.currentJuz || s.startingJuz || '—')+'</div>'+
+        '<div><b>Current Juz:</b> <b>'+esc(lastRecordedSessionDisplay(s.id))+'</b></div>'+
+        (s.joiningDate ? '<div><b>Admission Date:</b> '+fmtDateDisplay(s.joiningDate)+'</div>' : '')+
+      '</div>'+
+    '</div>'
+  ) : (
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:6px;">'+
+      '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>'+
+      (badgesHtml ? '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+badgesHtml+'</div>' : '')+
+    '</div>'
+  );
+
   return ''+
   '<div class="card" style="margin-bottom:14px;">'+
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:6px;">'+
-(hideWho ? '<div><b style="font-size:15px;">'+esc(periodLabel)+'</b></div>' : '<div><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:17px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+'  \u00B7  '+esc(periodLabel)+' ('+totalPeriodDays+' Working Days)</div></div>')+
-      (badgesHtml ? '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+badgesHtml+'</div>' : '')+
-    '</div>'+
+    headerHtml+
     '<div style="font-weight:700;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Performance Summary</div>'+
-    '<div class="stat-mini-grid" style="margin-bottom:14px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">'+
-      '<div class="stat-mini"><div class="n">'+stats.points+(stats.perfStars ? ' <span style="font-size:11.5px;color:var(--primary);">('+stats.perfStars+' Stars)</span>' : '')+'</div><div class="l">1. Performance Score</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.manualStars+'</div><div class="l">2. Manual Stars</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">3. Tallies Received</div></div>'+
-      '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">4. Tallies Remaining</div></div>'+
-      '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">5. Days Recited ('+attendanceRate+'%)</div></div>'+
+    '<div class="stat-mini-grid" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));">'+
+      '<div class="stat-mini"><div class="n">'+stats.points+'</div><div class="l">Score</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.perfStars+'</div><div class="l">Score Stars</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.starsRemaining+'</div><div class="l">Remaining Stars</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.manualStars+'</div><div class="l">Manual Stars</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.totalStars+'</div><div class="l">Total Stars</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">Total Tallies</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Remaining Tallies</div></div>'+
+      '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">Days Recited ('+attendanceRate+'%)</div></div>'+
     '</div>'+
+    '<div class="kv"><span class="k">Score</span><span class="v"><b>'+stats.points+' pts</b></span></div>'+
+    '<div class="kv"><span class="k">Score Stars</span><span class="v"><b>'+stats.perfStars+' Stars</b></span></div>'+
+    '<div class="kv"><span class="k">Remaining Stars</span><span class="v"><b>'+stats.starsRemaining+' Stars</b></span></div>'+
+    '<div class="kv"><span class="k">Manual Stars</span><span class="v"><b>'+stats.manualStars+' Stars</b></span></div>'+
+    '<div class="kv"><span class="k">Total Stars</span><span class="v"><b>'+stats.totalStars+' Stars</b></span></div>'+
+    '<div class="kv"><span class="k">Tallies Received</span><span class="v"><b>'+stats.talliesGiven+'</b></span></div>'+
+    '<div class="kv"><span class="k">Tallies Cleared by Stars</span><span class="v"><b style="color:var(--green,#10b981);">'+stats.talliesCleared+'</b></span></div>'+
+    '<div class="kv"><span class="k">Tallies Remaining</span><span class="v"><b style="'+(stats.talliesRemaining>0?'color:var(--danger,#ef4444);':'')+'">'+stats.talliesRemaining+'</b></span></div>'+
     '<div class="divider"></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
       '<div style="font-weight:700;font-size:13px;color:var(--ink);">Daily Status & Activity Report</div>'+
@@ -3451,7 +3479,8 @@ function renderParentProfile(){
     '</div>'+
     '<div class="kv"><span class="k">Study Type</span><span class="v">'+esc(s.studyType||'Hifz')+'</span></div>'+
     '<div class="kv"><span class="k">Admission Date</span><span class="v">'+fmtDateDisplay(s.joiningDate)+'</span></div>'+
-    '<div class="kv"><span class="k">Current Session</span><span class="v"><b>'+esc(lastRecordedSessionDisplay(sid))+'</b></span></div>'+
+    '<div class="kv"><span class="k">Starting Juz</span><span class="v">Juz '+esc(s.currentJuz || s.startingJuz || '—')+'</span></div>'+
+    '<div class="kv"><span class="k">Current Juz</span><span class="v"><b>'+esc(lastRecordedSessionDisplay(sid))+'</b></span></div>'+
     '<div class="kv"><span class="k">Login Username</span><span class="v">'+esc(s.loginUsername||'-')+'</span></div>'+
   '</div>'+
   '<div class="section-title small">Performance Reports</div>'+
@@ -3792,20 +3821,24 @@ function shareReportWhatsApp(){
       filterFn = filterMonth(APP.reportMonth);
     }
     const stats = computeStats(s.id, filterFn);
+    const currentJuzStr = lastRecordedSessionDisplay(s.id);
 
-    text = 'ðŸ“– *Illuminated Hearts - Student Report*\n' +
-           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
-           'ðŸ‘¤ *Student:* ' + (s.name||'') + '\n' +
-           'ðŸ·ï¸ *Batch:* ' + (s.batch||'-') + '\n' +
-           'ðŸ“… *Period:* ' + period + '\n' +
-           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
-           'ðŸ“Š *Performance Summary:*\n' +
-           '\u2022 Score: *' + stats.points + '*\n' +
-           '\u2022 Stars Earned: *' + stats.totalStars + '*\n' +
-           '\u2022 Tallies: *' + stats.talliesGiven + '*\n' +
-                      
-           
-           'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n' +
+    text = '📖 *Illuminated Hearts - Student Report*\n' +
+           '━━━━━━━━━━━━━━━━━━━━\n' +
+           '👤 *Student:* ' + (s.name||'') + '\n' +
+           '🏷️ *Batch:* ' + (s.batch||'-') + '\n' +
+           '📖 *Starting Juz:* Juz ' + (s.currentJuz || s.startingJuz || '—') + '\n' +
+           '📍 *Current Juz:* ' + currentJuzStr + '\n' +
+           '📅 *Period:* ' + period + '\n' +
+           '━━━━━━━━━━━━━━━━━━━━\n' +
+           '📊 *Score:* ' + stats.points + ' pts\n' +
+           '⭐ *Score Stars:* ' + stats.perfStars + '\n' +
+           '✨ *Remaining Stars:* ' + stats.starsRemaining + '\n' +
+           '🌟 *Manual Stars:* ' + stats.manualStars + '\n' +
+           '🌟 *Total Stars:* ' + stats.totalStars + '\n' +
+           '🏷️ *Tallies Received:* ' + stats.talliesGiven + '\n' +
+           '✅ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
+           '━━━━━━━━━━━━━━━━━━━━\n' +
            'Generated on ' + dateStr;
   } else {
     let period = '', filterFn = null;
@@ -4248,7 +4281,8 @@ function studentProfileDetailHtml(studentId, isAdmin){
   return ''+
     '<div class="kv"><span class="k">Batch</span><span class="v">'+esc(s.batch||'—')+'</span></div>'+
     '<div class="kv"><span class="k">Admission Date</span><span class="v">'+fmtDateDisplay(s.joiningDate)+'</span></div>'+
-    '<div class="kv"><span class="k">Current Session</span><span class="v"><b>'+esc(lastRecordedSessionDisplay(studentId))+'</b></span></div>'+
+    '<div class="kv"><span class="k">Starting Juz</span><span class="v">Juz '+esc(s.currentJuz || s.startingJuz || '—')+'</span></div>'+
+    '<div class="kv"><span class="k">Current Juz</span><span class="v"><b>'+esc(lastRecordedSessionDisplay(studentId))+'</b></span></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 10px;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">'+
       '<div style="font-weight:700;font-size:12.5px;color:var(--ink);">Month: <span style="color:var(--primary);">'+fmtMonthDisplay(profMonth)+'</span></div>'+
       '<input type="month" value="'+profMonth+'" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--surface);color:var(--ink);" onchange="APP.profileMonth=this.value;openStudentProfile(\''+studentId+'\');">'+
@@ -4258,14 +4292,15 @@ function studentProfileDetailHtml(studentId, isAdmin){
       '<div class="stat-mini"><div class="n">'+stats.perfStars+'</div><div class="l">Score Stars</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.starsRemaining+'</div><div class="l">Remaining Stars</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.manualStars+'</div><div class="l">Manual Stars</div></div>'+
+      '<div class="stat-mini"><div class="n">'+stats.totalStars+'</div><div class="l">Total Stars</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">Total Tallies</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Remaining Tallies</div></div>'+
     '</div>'+
     '<div class="kv"><span class="k">Score</span><span class="v"><b>'+stats.points+' pts</b></span></div>'+
-    '<div class="kv"><span class="k">Score Stars</span><span class="v"><b>'+stats.perfStars+' Stars</b> (from Score: 50 pts = 3 stars)</span></div>'+
+    '<div class="kv"><span class="k">Score Stars</span><span class="v"><b>'+stats.perfStars+' Stars</b></span></div>'+
     '<div class="kv"><span class="k">Remaining Stars</span><span class="v"><b>'+stats.starsRemaining+' Stars</b></span></div>'+
     '<div class="kv"><span class="k">Manual Stars</span><span class="v"><b>'+stats.manualStars+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Total Stars</span><span class="v"><b>'+stats.totalStars+' Stars</b> ('+stats.perfStars+' score + '+stats.manualStars+' manual)</span></div>'+
+    '<div class="kv"><span class="k">Total Stars</span><span class="v"><b>'+stats.totalStars+' Stars</b></span></div>'+
     '<div class="kv"><span class="k">Tallies Received</span><span class="v"><b>'+stats.talliesGiven+'</b></span></div>'+
     '<div class="kv"><span class="k">Tallies Cleared by Stars</span><span class="v"><b style="color:var(--green,#10b981);">'+stats.talliesCleared+'</b></span></div>'+
     '<div class="kv"><span class="k">Tallies Remaining</span><span class="v"><b style="'+(stats.talliesRemaining>0?'color:var(--danger,#ef4444);':'')+'">'+stats.talliesRemaining+'</b></span></div>'+
@@ -4304,13 +4339,15 @@ function shareStudentProfileWhatsApp(studentId){
                '━━━━━━━━━━━━━━━━━━━━\n' +
                '👤 *Student:* ' + (s.name||'') + '\n' +
                '🏷️ *Batch:* ' + (s.batch||'-') + '\n' +
-               '📍 *Current Session:* ' + currentSess + '\n' +
+               '📖 *Starting Juz:* Juz ' + (s.currentJuz || s.startingJuz || '—') + '\n' +
+               '📍 *Current Juz:* ' + currentSess + '\n' +
                '📅 *Month:* ' + fmtMonthDisplay(profMonth) + '\n' +
                '━━━━━━━━━━━━━━━━━━━━\n' +
                '📊 *Score:* ' + stats.points + ' pts\n' +
                '⭐ *Score Stars:* ' + stats.perfStars + '\n' +
                '✨ *Remaining Stars:* ' + stats.starsRemaining + '\n' +
                '🌟 *Manual Stars:* ' + stats.manualStars + '\n' +
+               '🌟 *Total Stars:* ' + stats.totalStars + '\n' +
                '🏷️ *Tallies Received:* ' + stats.talliesGiven + '\n' +
                '✅ *Tallies Remaining:* ' + stats.talliesRemaining + '\n' +
                '━━━━━━━━━━━━━━━━━━━━\n' +
