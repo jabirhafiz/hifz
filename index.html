@@ -1919,7 +1919,6 @@ async function saveCompetitionMarksAndResults(compId, marks){
 
 /* ============================= RENDER: SHELL ============================= */
 function iconSvg(name){
-  if(name==='star') return '';
   const icons = {
     home:'<path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v8.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V10" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     people:'<circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M3.5 19c.7-3.2 3-5 5.5-5s4.8 1.8 5.5 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="17" cy="9" r="2.3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M15.2 14.2c2 .2 3.7 1.8 4.3 4.3" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>',
@@ -2164,7 +2163,7 @@ function renderDashboard(){
   '</div>'+
   (can('records') ? '<div class="quick-actions">'+
     '<button class="qa-btn wide" onclick="openPickStudentModal(\'daily\')"><div class="qa-ic">'+iconSvg('today')+'</div><span>Today\'s Record</span></button>'+
-    '<button class="qa-btn" onclick="openPickStudentModal(\'achievement\')"><span>Stars</span></button>'+
+    '<button class="qa-btn" onclick="openPickStudentModal(\'achievement\')"><div class="qa-ic">'+iconSvg('star')+'</div><span>Stars</span></button>'+
     '<button class="qa-btn" onclick="openPickStudentModal(\'tally\')"><div class="qa-ic">'+iconSvg('tally')+'</div><span>Tallies</span></button>'+
   '</div>' : '');
 }
@@ -4367,7 +4366,7 @@ function openStudentProfile(studentId){
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
       '<button class="btn small outline" onclick="openStudentFormModal(\''+s.id+'\')">'+iconSvg('edit')+' Edit</button>'+
       '<button class="btn small outline" onclick="openDailyEntryModal(\''+s.id+'\',\''+APP.todayDate+'\')">'+iconSvg('today')+' Today\'s Entry</button>'+
-              '<button class="btn small outline" onclick="openAchievementModal(\''+s.id+'\')">Star</button>'+
+      '<button class="btn small outline" onclick="openAchievementModal(\''+s.id+'\')">'+iconSvg('star')+' Star</button>'+
       '<button class="btn small outline" onclick="openTallyModal(\''+s.id+'\')">'+iconSvg('tally')+' Tally</button>'+
       (can('records') ? '<button class="btn small outline" onclick="openEntriesManager(null,\''+s.id+'\')">'+iconSvg('trash')+' Manage Stars &amp; Tallies</button>' : '')+
     '</div>'+
