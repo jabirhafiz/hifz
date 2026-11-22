@@ -898,11 +898,11 @@ function computeStats(studentId, filterFn){
   const tal = APP.tallies.filter(t=>t.studentId===studentId && filterFn(t.date));
   const talliesGiven = tal.reduce((s,t)=> s + (Number(t.count)||0), 0);
 
-  // "clear tally with any star like perofmance score star or manually star" - 1 star clears 1 tally
-  const talliesCleared = Math.min(talliesGiven, totalStars);
+  // 1 star clears 2 tallies (2 stars = 4 tallies, 3 stars = 6 tallies) whether earned manually or performance-wise
+  const talliesCleared = Math.min(talliesGiven, totalStars * 2);
   const talliesRemaining = Math.max(0, talliesGiven - talliesCleared);
-  const starsRemaining = Math.max(0, totalStars - talliesCleared);
-  const starsUsed = talliesCleared;
+  const starsUsed = Math.ceil(talliesCleared / 2);
+  const starsRemaining = Math.max(0, totalStars - starsUsed);
   const talliesCancelled = talliesCleared;
 
   const sess = APP.sessions.filter(s=>s.studentId===studentId && filterFn(s.date));
@@ -3175,7 +3175,7 @@ function renderSettingsView(){
     '<b>Rules Summary</b><br/><br/>'+
     '• <b>Hifz Students:</b> Current Juz is tracked for each student. Admission Starting Juz is fixed.<br/>'+
     '• <b>Doura Students:</b> Recitations track through Juz 1–30 (20 pages each). When Juz 30 is completed, the Doura counter increases automatically and the next Doura restarts from Juz 1.<br/>'+
-    '• <b>Star–Tally Offset:</b> 1 Star cancels 2 Tallies automatically. Stars Earned is preserved permanently.<br/>'+
+    '• <b>Star–Tally Offset:</b> 1 Star cancels 2 Tallies automatically (2 Stars = 4 Tallies, 3 Stars = 6 Tallies), whether stars are achieved manually or performance-wise. Stars Earned is preserved permanently.<br/>'+
     '• <b>Competitions:</b> 🥇 1st Place = +5🥈 2nd Place = +3🥉 3rd Place = +2— automatically awarded into the Star Board above.<br/>'+
     '• "Not Recited" automatically adds 2 Tallies; "Not Reported" adds 5 Tallies.'+
   '</div>';
