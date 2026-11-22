@@ -2797,14 +2797,6 @@ function studentStatBlock(s, stats, periodLabel, periodFilterFn, hideWho, rangeF
       '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Remaining Tallies</div></div>'+
       '<div class="stat-mini"><div class="n">'+recitedDays+' / '+totalPeriodDays+'</div><div class="l">Days Recited ('+attendanceRate+'%)</div></div>'+
     '</div>'+
-    '<div class="kv"><span class="k">Score</span><span class="v"><b>'+stats.points+' pts</b></span></div>'+
-    '<div class="kv"><span class="k">Score Stars</span><span class="v"><b>'+stats.perfStars+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Remaining Stars</span><span class="v"><b>'+stats.starsRemaining+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Manual Stars</span><span class="v"><b>'+stats.manualStars+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Total Stars</span><span class="v"><b>'+stats.totalStars+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Tallies Received</span><span class="v"><b>'+stats.talliesGiven+'</b></span></div>'+
-    '<div class="kv"><span class="k">Tallies Cleared by Stars</span><span class="v"><b style="color:var(--green,#10b981);">'+stats.talliesCleared+'</b></span></div>'+
-    '<div class="kv"><span class="k">Tallies Remaining</span><span class="v"><b style="'+(stats.talliesRemaining>0?'color:var(--danger,#ef4444);':'')+'">'+stats.talliesRemaining+'</b></span></div>'+
     '<div class="divider"></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
       '<div style="font-weight:700;font-size:13px;color:var(--ink);">Daily Status & Activity Report</div>'+
@@ -2832,27 +2824,39 @@ function yearlyReportTable(s, yearOverride){
   const year = yearOverride || APP.reportYear;
   const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   let rows = '';
+  let yearTotalRecited = 0;
+  let yearTotalWorkingDays = 0;
   for(let m=1;m<=12;m++){
     const mm = String(m).padStart(2,'0');
     const ym = year+'-'+mm;
+    const parts = ym.split('-');
+    const lastDay = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
+    const mWorkingDays = getWorkingDatesInRange(ym+'-01', ym+'-'+String(lastDay).padStart(2,'0')).length;
     const st = computeStats(s.id, filterMonth(ym));
+    const mRecited = st.statusCounts['Recited'] || 0;
+    const mRate = mWorkingDays ? Math.round((mRecited / mWorkingDays) * 100) : 0;
+    yearTotalRecited += mRecited;
+    yearTotalWorkingDays += mWorkingDays;
     rows += '<tr>'+
       '<td><b>'+monthNames[m-1]+'</b></td>'+
-            '<td>'+st.talliesGiven+'</td>'+
+      '<td>'+st.talliesGiven+'</td>'+
       '<td>'+st.totalStars+'</td>'+
       '<td>'+st.points+'</td>'+
+      '<td>'+mRecited+' / '+mWorkingDays+' d ('+mRate+'%)</td>'+
     '</tr>';
   }
   const yearStats = computeStats(s.id, filterYear(year));
+  const yearRate = yearTotalWorkingDays ? Math.round((yearTotalRecited / yearTotalWorkingDays) * 100) : 0;
   return ''+
 '<div class="card" style="margin-bottom:14px;"><b style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;">'+esc(s.name)+'</b><div class="subtle">'+esc(s.batch||'-')+'  \u00B7  '+esc(year)+' yearly report</div></div>'+
   '<div class="table-scroll" style="margin-bottom:14px;"><table>'+
-    '<tr><th>Month</th><th>Tallies</th><th>Stars Earned</th><th>Performance Score</th></tr>'+
+    '<tr><th>Month</th><th>Tallies</th><th>Stars Earned</th><th>Performance Score</th><th>Attendance</th></tr>'+
     rows+
   '</table></div>'+
   '<div class="card">'+
     '<div class="section-title small">Year Summary ('+esc(year)+')</div>'+
-        '<div class="kv"><span class="k">Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
+    '<div class="kv"><span class="k">Attendance</span><span class="v"><b>'+yearTotalRecited+' / '+yearTotalWorkingDays+' days ('+yearRate+'%)</b></span></div>'+
+    '<div class="kv"><span class="k">Tallies</span><span class="v"><b>'+yearStats.talliesGiven+'</b></span></div>'+
     '<div class="kv"><span class="k">Stars Earned</span><span class="v"><b>'+yearStats.totalStars+'</b></span></div>'+
     '<div class="kv"><span class="k">Performance Score</span><span class="v"><b>'+yearStats.points+'</b></span></div>'+
   '</div>';
@@ -4295,14 +4299,6 @@ function studentProfileDetailHtml(studentId, isAdmin){
       '<div class="stat-mini"><div class="n">'+stats.talliesGiven+'</div><div class="l">Total Tallies</div></div>'+
       '<div class="stat-mini"><div class="n">'+stats.talliesRemaining+'</div><div class="l">Remaining Tallies</div></div>'+
     '</div>'+
-    '<div class="kv"><span class="k">Score</span><span class="v"><b>'+stats.points+' pts</b></span></div>'+
-    '<div class="kv"><span class="k">Score Stars</span><span class="v"><b>'+stats.perfStars+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Remaining Stars</span><span class="v"><b>'+stats.starsRemaining+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Manual Stars</span><span class="v"><b>'+stats.manualStars+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Total Stars</span><span class="v"><b>'+stats.totalStars+' Stars</b></span></div>'+
-    '<div class="kv"><span class="k">Tallies Received</span><span class="v"><b>'+stats.talliesGiven+'</b></span></div>'+
-    '<div class="kv"><span class="k">Tallies Cleared by Stars</span><span class="v"><b style="color:var(--green,#10b981);">'+stats.talliesCleared+'</b></span></div>'+
-    '<div class="kv"><span class="k">Tallies Remaining</span><span class="v"><b style="'+(stats.talliesRemaining>0?'color:var(--danger,#ef4444);':'')+'">'+stats.talliesRemaining+'</b></span></div>'+
     '<div class="divider"></div>'+
     '<div class="section-title small">Recent Daily Records ('+fmtMonthDisplay(profMonth)+')</div>'+
     (drHist.length? '<div class="list">'+ drHist.map(function(r){ const isT = r.date===todayStr(), rec = normStatus(r.status)==='Recited'; return '<div class="kv'+(isT?' today-hl':'')+'"><span class="k">'+(isT?'<b>'+fmtDateDisplay(r.date)+'</b><span class="today-tag">Today</span>':fmtDateDisplay(r.date))+' — '+(rec?'<span class="st-recited">Recited</span>':esc(normStatus(r.status)))+(r.session?' ('+esc(r.session)+')':'')+'</span><span class="v">'+r.performance+'/10</span></div>'; }).join('') +'</div>' : '<div class="subtle">No daily records for '+fmtMonthDisplay(profMonth)+'.</div>')+
